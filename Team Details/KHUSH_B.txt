@@ -1,0 +1,8 @@
+Name: Khush Bhardwaj
+SRN: PES2UG24CS226
+Branch: Computer Science and Engineering
+College: PES University
+Role: Team Member
+Project Name:- Blood-Bank-Management-System
+
+Hi, I am Khush Bhardwaj. A C.S.E student at PES University also I am teammember of the project (Blood Bank Management System).
