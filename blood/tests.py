@@ -1145,3 +1145,121 @@ class BloodInventoryUpdateTests(TestCase):
         self.assertContains(response, 'A+')
         self.assertContains(response, 'O-')
 
+
+class AdminDashboardTests(TestCase):
+    """
+    BB-F-016: Administrator Dashboard (TC-ADM-01, BB-SR-003)
+    Verifies staff-only access control, aggregated donor/patient metrics,
+    blood request and donation status breakdowns, inventory stock counts,
+    and staff navigation links.
+    """
+    def setUp(self):
+        self.staff_user = User.objects.create_user(
+            username="dashboard_staff",
+            password="staffpassword123",
+            is_staff=True,
+        )
+        self.regular_user = User.objects.create_user(
+            username="regular_dashboard_user",
+            password="regularpassword123",
+            is_staff=False,
+        )
+        self.client.force_login(self.staff_user)
+
+    def test_non_staff_user_is_redirected(self):
+        self.client.logout()
+        self.client.force_login(self.regular_user)
+        response = self.client.get(reverse('admin_dashboard'))
+        self.assertEqual(response.status_code, 302)
+        self.assertIn('/admin/login/', response.url)
+
+    def test_unauthenticated_user_is_redirected(self):
+        self.client.logout()
+        response = self.client.get(reverse('admin_dashboard'))
+        self.assertEqual(response.status_code, 302)
+        self.assertIn('/admin/login/', response.url)
+
+    def test_dashboard_shows_accurate_donor_and_patient_counts(self):
+        u1 = User.objects.create_user(username="donor1", password="pw1")
+        u2 = User.objects.create_user(username="donor2", password="pw2")
+        u3 = User.objects.create_user(username="patient1", password="pw3")
+        u4 = User.objects.create_user(username="dual_user", password="pw4")
+
+        DonorProfile.objects.create(user=u1, blood_group="A+")
+        DonorProfile.objects.create(user=u2, blood_group="B+")
+        DonorProfile.objects.create(user=u4, blood_group="O+")
+
+        PatientProfile.objects.create(user=u3, blood_group="AB+")
+        PatientProfile.objects.create(user=u4, blood_group="O+")
+
+        response = self.client.get(reverse('admin_dashboard'))
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.context['donor_count'], 3)
+        self.assertEqual(response.context['patient_count'], 2)
+        self.assertContains(response, '3')
+        self.assertContains(response, '2')
+
+    def test_dashboard_shows_accurate_blood_requests_by_status(self):
+        patient = User.objects.create_user(username="patient_req", password="pw")
+        today = date.today()
+        BloodRequest.objects.create(patient=patient, blood_group="A+", units=2, needed_by_date=today, status="Pending")
+        BloodRequest.objects.create(patient=patient, blood_group="B+", units=1, needed_by_date=today, status="Pending")
+        BloodRequest.objects.create(patient=patient, blood_group="O+", units=3, needed_by_date=today, status="Approved")
+        BloodRequest.objects.create(patient=patient, blood_group="AB-", units=1, needed_by_date=today, status="Rejected")
+
+        response = self.client.get(reverse('admin_dashboard'))
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.context['request_counts']['total'], 4)
+        self.assertEqual(response.context['request_counts']['pending'], 2)
+        self.assertEqual(response.context['request_counts']['approved'], 1)
+        self.assertEqual(response.context['request_counts']['rejected'], 1)
+
+    def test_dashboard_shows_accurate_donations_by_status(self):
+        donor = User.objects.create_user(username="donor_don", password="pw")
+        today = date.today()
+        Donation.objects.create(donor=donor, blood_group="A+", units=1, donation_date=today, status="Pending")
+        Donation.objects.create(donor=donor, blood_group="A-", units=2, donation_date=today, status="Approved")
+        Donation.objects.create(donor=donor, blood_group="B+", units=1, donation_date=today, status="Approved")
+        Donation.objects.create(donor=donor, blood_group="O-", units=1, donation_date=today, status="Rejected")
+
+        response = self.client.get(reverse('admin_dashboard'))
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.context['donation_counts']['total'], 4)
+        self.assertEqual(response.context['donation_counts']['pending'], 1)
+        self.assertEqual(response.context['donation_counts']['approved'], 2)
+        self.assertEqual(response.context['donation_counts']['rejected'], 1)
+
+    def test_dashboard_shows_accurate_stock_per_blood_group_and_total(self):
+        BloodInventory.objects.create(blood_group="A+", units=10)
+        BloodInventory.objects.create(blood_group="B+", units=5)
+        BloodInventory.objects.create(blood_group="O-", units=8)
+
+        response = self.client.get(reverse('admin_dashboard'))
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.context['total_stock_units'], 23)
+
+        stock_dict = {item['blood_group']: item['units'] for item in response.context['stock_by_group']}
+        self.assertEqual(len(stock_dict), 8)
+        self.assertEqual(stock_dict['A+'], 10)
+        self.assertEqual(stock_dict['B+'], 5)
+        self.assertEqual(stock_dict['O-'], 8)
+        self.assertEqual(stock_dict['AB+'], 0)
+
+    def test_dashboard_links_to_existing_staff_pages(self):
+        response = self.client.get(reverse('admin_dashboard'))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, reverse('manage_donations'))
+        self.assertContains(response, reverse('manage_blood_requests'))
+        self.assertContains(response, reverse('update_inventory'))
+
+    def test_staff_navbar_contains_dashboard_link(self):
+        response = self.client.get(reverse('admin_dashboard'))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, reverse('admin_dashboard'))
+
+        self.client.logout()
+        self.client.force_login(self.regular_user)
+        user_response = self.client.get(reverse('blood_availability'))
+        self.assertNotContains(user_response, reverse('admin_dashboard'))
+
+
