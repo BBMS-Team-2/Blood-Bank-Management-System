@@ -4,7 +4,7 @@ from django.contrib.auth import authenticate, login as auth_login, logout as aut
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.forms import AuthenticationForm
 from django.core.paginator import Paginator
-from django.db.models import Min
+from django.db.models import Min, Count, Sum, Q
 from django.shortcuts import render, redirect
 from django.views.decorators.http import require_POST
 
@@ -388,3 +388,67 @@ def update_inventory(request):
             'inventory_records': inventory_records,
         }
     )
+
+
+@staff_member_required
+def admin_dashboard(request):
+    """
+    BB-F-016: Administrator Dashboard (TC-ADM-01, BB-SR-003)
+    Staff-only dashboard providing high-level operational metrics:
+    - Registered donors and patients counts
+    - Blood requests by status (Pending, Approved, Rejected)
+    - Donations by status (Pending, Approved, Rejected)
+    - Current inventory stock by blood group and total available units
+    - Direct navigation links to administrative review and inventory workflows
+
+    Donor and patient counts:
+    Donors are counted as registered users with an associated DonorProfile
+    (DonorProfile.objects.count()). Patients are counted as registered users
+    with an associated PatientProfile (PatientProfile.objects.count()).
+    Because every account may use both donor and patient functions without a
+    mutually exclusive role field, counts reflect active profile registrations.
+    """
+    donor_count = DonorProfile.objects.count()
+    patient_count = PatientProfile.objects.count()
+
+    request_aggregates = BloodRequest.objects.aggregate(
+        total=Count('id'),
+        pending=Count('id', filter=Q(status='Pending')),
+        approved=Count('id', filter=Q(status='Approved')),
+        rejected=Count('id', filter=Q(status='Rejected')),
+    )
+
+    donation_aggregates = Donation.objects.aggregate(
+        total=Count('id'),
+        pending=Count('id', filter=Q(status='Pending')),
+        approved=Count('id', filter=Q(status='Approved')),
+        rejected=Count('id', filter=Q(status='Rejected')),
+    )
+
+    inventory_records = {
+        item['blood_group']: item['units']
+        for item in BloodInventory.objects.values('blood_group', 'units')
+    }
+
+    stock_by_group = []
+    for group, _ in Donation.BLOOD_GROUPS:
+        stock_by_group.append({
+            'blood_group': group,
+            'units': inventory_records.get(group, 0),
+        })
+
+    total_stock_units = BloodInventory.objects.aggregate(total=Sum('units'))['total'] or 0
+
+    return render(
+        request,
+        'blood/admin_dashboard.html',
+        {
+            'donor_count': donor_count,
+            'patient_count': patient_count,
+            'request_counts': request_aggregates,
+            'donation_counts': donation_aggregates,
+            'stock_by_group': stock_by_group,
+            'total_stock_units': total_stock_units,
+        }
+    )
+

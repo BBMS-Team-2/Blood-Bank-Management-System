@@ -85,4 +85,9 @@ urlpatterns = [
         views.update_inventory,
         name='update_inventory'
     ),
+    path(
+        'staff/dashboard/',
+        views.admin_dashboard,
+        name='admin_dashboard'
+    ),
 ]
