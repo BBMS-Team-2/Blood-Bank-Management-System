@@ -90,4 +90,9 @@ urlpatterns = [
         views.admin_dashboard,
         name='admin_dashboard'
     ),
+    path(
+        'staff/users/',
+        views.user_management,
+        name='user_management'
+    ),
 ]

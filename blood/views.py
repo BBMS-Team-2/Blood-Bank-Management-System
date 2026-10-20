@@ -3,6 +3,7 @@ from django.contrib.admin.views.decorators import staff_member_required
 from django.contrib.auth import authenticate, login as auth_login, logout as auth_logout
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.forms import AuthenticationForm
+from django.contrib.auth.models import User
 from django.core.paginator import Paginator
 from django.db.models import Min, Count, Sum, Q
 from django.shortcuts import render, redirect
@@ -451,4 +452,45 @@ def admin_dashboard(request):
             'total_stock_units': total_stock_units,
         }
     )
+
+
+@staff_member_required
+def user_management(request):
+    """
+    BB-F-017: User Management (TC-ADM-02, BB-SR-003)
+    Staff-only view to list and search registered users along with their
+    donor and patient profile details.
+    """
+    search_query = request.GET.get('q', '').strip()
+    users_qs = User.objects.select_related(
+        'donor_profile', 'patient_profile'
+    ).order_by('-date_joined')
+
+    if search_query:
+        users_qs = users_qs.filter(
+            Q(username__icontains=search_query) |
+            Q(email__icontains=search_query) |
+            Q(first_name__icontains=search_query) |
+            Q(last_name__icontains=search_query) |
+            Q(donor_profile__blood_group__icontains=search_query) |
+            Q(donor_profile__contact_phone__icontains=search_query) |
+            Q(patient_profile__blood_group__icontains=search_query) |
+            Q(patient_profile__contact_phone__icontains=search_query)
+        ).distinct()
+
+    paginator = Paginator(users_qs, 25)
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+
+    return render(
+        request,
+        'blood/user_management.html',
+        {
+            'page_obj': page_obj,
+            'users': page_obj,
+            'search_query': search_query,
+            'total_users': paginator.count,
+        }
+    )
+
 
