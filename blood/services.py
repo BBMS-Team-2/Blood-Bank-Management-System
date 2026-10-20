@@ -1,3 +1,4 @@
+from django.contrib.auth.models import User
 from django.db import transaction
 from django.db.models import F
 from django.utils import timezone
@@ -131,3 +132,34 @@ def review_blood_request(request_id, reviewer, action):
     adjust_inventory_stock(blood_request.blood_group, -blood_request.units)
 
     return True
+
+
+@transaction.atomic
+def set_user_active_status(target_user_id, acting_user, is_active=None):
+    """
+    BB-F-017: User Management (TC-ADM-02, BB-SR-003)
+    Activates or deactivates a user account with safety guards:
+    - Never permitted to deactivate one's own account.
+    - Never permitted to deactivate a superuser account.
+    - Raises ValueError or PermissionError on violation or invalid input.
+    """
+    try:
+        target_user = User.objects.get(pk=target_user_id)
+    except User.DoesNotExist:
+        raise ValueError("User not found.")
+
+    if is_active is None:
+        new_status = not target_user.is_active
+    else:
+        new_status = bool(is_active)
+
+    if not new_status:
+        if acting_user and target_user.pk == acting_user.pk:
+            raise PermissionError("You cannot deactivate your own account.")
+        if target_user.is_superuser:
+            raise PermissionError("Superuser accounts cannot be deactivated.")
+
+    target_user.is_active = new_status
+    target_user.save(update_fields=['is_active'])
+    return target_user
+

@@ -444,13 +444,20 @@
                                 </td>
                                 <td>
                                     {% if u.id == request.user.id %}
-                                        <span class="btn-disabled-guard" title="Current User">Current User</span>
+                                        <span class="btn-disabled-guard" title="You cannot deactivate your own account">Current User</span>
                                     {% elif u.is_superuser %}
-                                        <span class="btn-disabled-guard" title="Superuser">Protected</span>
-                                    {% elif u.is_active %}
-                                        <span class="status-pill status-active">Active</span>
+                                        <span class="btn-disabled-guard" title="Superuser accounts cannot be deactivated">Protected</span>
                                     {% else %}
-                                        <span class="status-pill status-inactive">Inactive</span>
+                                        <form method="post" action="{% url 'toggle_user_active' u.id %}" class="action-form">
+                                            {% csrf_token %}
+                                            {% if u.is_active %}
+                                                <input type="hidden" name="action" value="deactivate">
+                                                <button type="submit" class="btn-toggle btn-deactivate">Deactivate</button>
+                                            {% else %}
+                                                <input type="hidden" name="action" value="activate">
+                                                <button type="submit" class="btn-toggle btn-activate">Activate</button>
+                                            {% endif %}
+                                        </form>
                                     {% endif %}
                                 </td>
                             </tr>

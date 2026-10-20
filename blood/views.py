@@ -13,7 +13,7 @@ from .forms import DonationForm, BloodRequestForm, PatientProfileForm, DonorProf
 from .models import Donation, BloodInventory, BloodRequest, PatientProfile, DonorProfile
 from .services import review_donation as process_donation_review
 from .services import review_blood_request as process_blood_request_review
-from .services import update_inventory_stock
+from .services import update_inventory_stock, set_user_active_status
 
 
 @login_required
@@ -492,5 +492,31 @@ def user_management(request):
             'total_users': paginator.count,
         }
     )
+
+
+@staff_member_required
+@require_POST
+def toggle_user_active(request, user_id):
+    """
+    BB-F-017: User Management (TC-ADM-02, BB-SR-003)
+    Staff-only POST action to activate or deactivate a registered user account.
+    Enforces self and superuser deactivation guards and reports status via messages.
+    """
+    action = request.POST.get('action')
+    desired_active = None
+    if action == 'activate':
+        desired_active = True
+    elif action == 'deactivate':
+        desired_active = False
+
+    try:
+        target_user = set_user_active_status(user_id, request.user, is_active=desired_active)
+        status_label = "activated" if target_user.is_active else "deactivated"
+        messages.success(request, f"User '{target_user.username}' has been successfully {status_label}.")
+    except (ValueError, PermissionError) as exc:
+        messages.error(request, str(exc))
+
+    return redirect('user_management')
+
 
 

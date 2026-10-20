@@ -95,4 +95,9 @@ urlpatterns = [
         views.user_management,
         name='user_management'
     ),
+    path(
+        'staff/users/<int:user_id>/toggle-active/',
+        views.toggle_user_active,
+        name='toggle_user_active'
+    ),
 ]
