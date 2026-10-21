@@ -3,6 +3,9 @@ from django.shortcuts import render, redirect
 from .forms import DonationForm
 from django.contrib.auth.models import User
 
+from django.contrib.admin.views.decorators import staff_member_required
+from .models import Donation
+
 
 @login_required
 def submit_donation(request):
@@ -23,4 +26,15 @@ def submit_donation(request):
         request,
         'blood/submit_donation.html',
         {'form': form}
+    )
+
+
+@staff_member_required
+def manage_donations(request):
+    donations = Donation.objects.select_related('donor').order_by('-created_at')
+
+    return render(
+        request,
+        'blood/manage_donations.html',
+        {'donations': donations}
     )
