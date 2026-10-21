@@ -1,7 +1,14 @@
+from django.contrib import messages
+from django.contrib.admin.views.decorators import staff_member_required
 from django.contrib.auth.decorators import login_required
-from django.shortcuts import render, redirect
+from django.db import transaction
+from django.db.models import F
+from django.shortcuts import render, redirect, get_object_or_404
+from django.utils import timezone
+from django.views.decorators.http import require_POST
+
 from .forms import DonationForm
-from django.contrib.auth.models import User
+from .models import Donation, BloodInventory
 
 
 @login_required
@@ -10,11 +17,11 @@ def submit_donation(request):
         form = DonationForm(request.POST)
         if form.is_valid():
             donation = form.save(commit=False)
-
             donation.donor = request.user
             donation.status = 'Pending'
             donation.save()
 
+            messages.success(request, 'Donation submitted for review.')
             return redirect('submit_donation')
     else:
         form = DonationForm()
@@ -24,3 +31,75 @@ def submit_donation(request):
         'blood/submit_donation.html',
         {'form': form}
     )
+
+
+@staff_member_required
+def manage_donations(request):
+    donations = Donation.objects.select_related(
+        'donor', 'reviewed_by'
+    ).order_by('-created_at')
+
+    return render(
+        request,
+        'blood/manage_donations.html',
+        {'donations': donations}
+    )
+
+
+@staff_member_required
+@require_POST
+def review_donation(request, donation_id):
+    action = request.POST.get('action')
+
+    if action not in ('approve', 'reject'):
+        messages.error(request, 'Invalid review action.')
+        return redirect('manage_donations')
+
+    with transaction.atomic():
+        donation = get_object_or_404(
+            Donation.objects.select_for_update(),
+            pk=donation_id
+        )
+
+        if donation.status != 'Pending':
+            messages.warning(
+                request,
+                'This donation has already been reviewed.'
+            )
+            return redirect('manage_donations')
+
+        if action == 'approve':
+            # Create the blood-group stock row if it doesn't exist.
+            inventory, _ = BloodInventory.objects.get_or_create(
+                blood_group=donation.blood_group
+            )
+
+            # Atomic increment; avoids overwriting concurrent stock updates.
+            BloodInventory.objects.filter(pk=inventory.pk).update(
+                units=F('units') + donation.units
+            )
+            new_status = 'Approved'
+        else:
+            new_status = 'Rejected'
+
+        # Claim the pending donation exactly once.
+        updated = Donation.objects.filter(
+            pk=donation.pk,
+            status='Pending'
+        ).update(
+            status=new_status,
+            reviewed_by=request.user,
+            reviewed_at=timezone.now()
+        )
+
+        if updated != 1:
+            # Raising rolls back the stock increment as well.
+            raise RuntimeError(
+                'Donation review could not be completed safely.'
+            )
+
+    messages.success(
+        request,
+        f'Donation #{donation_id} {new_status.lower()}.'
+    )
+    return redirect('manage_donations')
