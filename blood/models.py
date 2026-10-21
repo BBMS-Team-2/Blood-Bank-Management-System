@@ -15,6 +15,12 @@ class Donation(models.Model):
         ('O-', 'O-'),
     ]
 
+    STATUS_CHOICES = [
+        ('Pending', 'Pending'),
+        ('Approved', 'Approved'),
+        ('Rejected', 'Rejected'),
+    ]
+
     donor = models.ForeignKey(
         User,
         on_delete=models.CASCADE,
@@ -29,10 +35,31 @@ class Donation(models.Model):
     notes = models.TextField(blank=True)
     status = models.CharField(
         max_length=10,
-        default='Pending',
-        editable=False
+        choices=STATUS_CHOICES,
+        default='Pending'
     )
+    reviewed_by = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='reviewed_donations'
+    )
+    reviewed_at = models.DateTimeField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
         return f"{self.donor.username} - {self.blood_group} - {self.status}"
+
+
+class BloodInventory(models.Model):
+    blood_group = models.CharField(
+        max_length=3,
+        choices=Donation.BLOOD_GROUPS,
+        unique=True
+    )
+    units = models.PositiveIntegerField(default=0)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f"{self.blood_group}: {self.units} units"
