@@ -8,6 +8,12 @@
 <body>
     <h1>Donation Management</h1>
 
+    {% if messages %}
+        {% for message in messages %}
+            <p>{{ message }}</p>
+        {% endfor %}
+    {% endif %}
+
     {% if donations %}
         <table border="1" cellpadding="8">
             <thead>
@@ -17,6 +23,7 @@
                     <th>Date</th>
                     <th>Units</th>
                     <th>Status</th>
+                    <th>Review</th>
                 </tr>
             </thead>
             <tbody>
@@ -27,6 +34,29 @@
                         <td>{{ donation.donation_date }}</td>
                         <td>{{ donation.units }}</td>
                         <td>{{ donation.status }}</td>
+                        <td>
+                            {% if donation.status == 'Pending' %}
+                                <form method="post"
+                                      action="{% url 'review_donation' donation.id %}">
+                                    {% csrf_token %}
+                                    <button type="submit"
+                                            name="action"
+                                            value="approve">
+                                        Approve
+                                    </button>
+                                    <button type="submit"
+                                            name="action"
+                                            value="reject">
+                                        Reject
+                                    </button>
+                                </form>
+                            {% else %}
+                                Reviewed
+                                {% if donation.reviewed_by %}
+                                    by {{ donation.reviewed_by.username }}
+                                {% endif %}
+                            {% endif %}
+                        </td>
                     </tr>
                 {% endfor %}
             </tbody>
