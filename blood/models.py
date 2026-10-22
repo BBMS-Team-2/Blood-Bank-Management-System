@@ -1,4 +1,3 @@
-
 from django.db import models
 from django.contrib.auth.models import User
 
@@ -50,6 +49,33 @@ class Donation(models.Model):
 
     def __str__(self):
         return f"{self.donor.username} - {self.blood_group} - {self.status}"
+
+
+class BloodRequest(models.Model):
+    BLOOD_GROUPS = Donation.BLOOD_GROUPS
+    STATUS_CHOICES = Donation.STATUS_CHOICES
+
+    patient = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name='blood_requests'
+    )
+    blood_group = models.CharField(
+        max_length=3,
+        choices=BLOOD_GROUPS
+    )
+    units = models.PositiveSmallIntegerField(default=1)
+    needed_by_date = models.DateField()
+    notes = models.TextField(blank=True)
+    status = models.CharField(
+        max_length=10,
+        choices=STATUS_CHOICES,
+        default='Pending'
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"{self.patient.username} - {self.blood_group} - {self.status}"
 
 
 class BloodInventory(models.Model):

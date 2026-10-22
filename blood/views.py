@@ -7,8 +7,8 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.utils import timezone
 from django.views.decorators.http import require_POST
 
-from .forms import DonationForm
-from .models import Donation, BloodInventory
+from .forms import DonationForm, BloodRequestForm
+from .models import Donation, BloodInventory, BloodRequest
 
 
 @login_required
@@ -29,6 +29,28 @@ def submit_donation(request):
     return render(
         request,
         'blood/submit_donation.html',
+        {'form': form}
+    )
+
+
+@login_required
+def submit_blood_request(request):
+    if request.method == 'POST':
+        form = BloodRequestForm(request.POST)
+        if form.is_valid():
+            blood_request = form.save(commit=False)
+            blood_request.patient = request.user
+            blood_request.status = 'Pending'
+            blood_request.save()
+
+            messages.success(request, 'Blood request submitted successfully.')
+            return redirect('submit_blood_request')
+    else:
+        form = BloodRequestForm()
+
+    return render(
+        request,
+        'blood/submit_blood_request.html',
         {'form': form}
     )
 

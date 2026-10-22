@@ -8,6 +8,11 @@ urlpatterns = [
         name='submit_donation'
     ),
     path(
+        'requests/submit/',
+        views.submit_blood_request,
+        name='submit_blood_request'
+    ),
+    path(
         'staff/donations/',
         views.manage_donations,
         name='manage_donations'
