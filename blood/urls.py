@@ -37,4 +37,9 @@ urlpatterns = [
         views.blood_request_history,
         name='blood_request_history'
     ),
+    path(
+        'patient/profile/',
+        views.patient_profile,
+        name='patient_profile'
+    ),
 ]

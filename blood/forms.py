@@ -2,7 +2,7 @@ from datetime import date
 
 from django import forms
 
-from .models import Donation, BloodRequest
+from .models import Donation, BloodRequest, PatientProfile
 
 
 class DonationForm(forms.ModelForm):
@@ -101,3 +101,49 @@ class BloodRequestForm(forms.ModelForm):
                 attrs={'rows': 3}
             ),
         }
+
+
+class PatientProfileForm(forms.ModelForm):
+    """
+    BB-F-008: Patient Profile Form
+    Allows patients to maintain and update their profile details.
+    """
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields['blood_group'].label = 'Blood Group'
+        self.fields['age'].label = 'Age'
+        self.fields['disease'].label = 'Medical Reason / Condition'
+        self.fields['contact_phone'].label = 'Contact Phone Number'
+        self.fields['address'].label = 'Residential Address'
+
+        for field_name, field in self.fields.items():
+            field.widget.attrs.update({
+                'class': 'form-control',
+            })
+
+        self.fields['age'].widget.attrs.update({
+            'placeholder': 'Enter age (e.g. 28)',
+            'min': '1',
+            'max': '125',
+        })
+        self.fields['disease'].widget.attrs.update({
+            'placeholder': 'Reason for blood requirement (e.g. Surgery, Anemia)',
+        })
+        self.fields['contact_phone'].widget.attrs.update({
+            'placeholder': 'e.g. +91 9876543210',
+        })
+        self.fields['address'].widget.attrs.update({
+            'rows': 3,
+            'placeholder': 'Enter your residential address...',
+        })
+
+    def clean_age(self):
+        age = self.cleaned_data.get('age')
+        if age is not None and (age <= 0 or age > 125):
+            raise forms.ValidationError('Please enter a valid age between 1 and 125.')
+        return age
+
+    class Meta:
+        model = PatientProfile
+        fields = ['blood_group', 'age', 'disease', 'contact_phone', 'address']
+
