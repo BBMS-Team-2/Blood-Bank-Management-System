@@ -22,4 +22,9 @@ urlpatterns = [
         views.review_donation,
         name='review_donation'
     ),
+    path(
+        'inventory/availability/',
+        views.view_blood_availability,
+        name='blood_availability'
+    ),
 ]
