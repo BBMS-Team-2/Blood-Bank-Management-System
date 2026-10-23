@@ -6,8 +6,8 @@ from django.contrib.auth.forms import AuthenticationForm
 from django.shortcuts import render, redirect
 from django.views.decorators.http import require_POST
 
-from .forms import DonationForm, BloodRequestForm, PatientProfileForm, UserRegisterForm
-from .models import Donation, BloodInventory, BloodRequest, PatientProfile
+from .forms import DonationForm, BloodRequestForm, PatientProfileForm, DonorProfileForm, UserRegisterForm
+from .models import Donation, BloodInventory, BloodRequest, PatientProfile, DonorProfile
 from .services import review_donation as process_donation_review
 
 
@@ -194,6 +194,33 @@ def patient_profile(request):
     return render(
         request,
         'blood/patient_profile.html',
+        {
+            'form': form,
+            'profile': profile,
+        }
+    )
+
+
+@login_required
+def donor_profile(request):
+    """
+    BB-F-004: Donor Profile Management
+    Allows authenticated donors to view and update their profile details.
+    """
+    profile, _ = DonorProfile.objects.get_or_create(user=request.user)
+
+    if request.method == 'POST':
+        form = DonorProfileForm(request.POST, instance=profile)
+        if form.is_valid():
+            form.save()
+            messages.success(request, 'Your donor profile has been updated successfully.')
+            return redirect('donor_profile')
+    else:
+        form = DonorProfileForm(instance=profile)
+
+    return render(
+        request,
+        'blood/donor_profile.html',
         {
             'form': form,
             'profile': profile,

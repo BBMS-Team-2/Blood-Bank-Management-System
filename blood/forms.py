@@ -4,7 +4,7 @@ from django import forms
 from django.contrib.auth.forms import UserCreationForm
 from django.contrib.auth.models import User
 
-from .models import Donation, BloodRequest, PatientProfile
+from .models import Donation, BloodRequest, PatientProfile, DonorProfile
 
 
 class DonationForm(forms.ModelForm):
@@ -150,6 +150,47 @@ class PatientProfileForm(forms.ModelForm):
         fields = ['blood_group', 'age', 'disease', 'contact_phone', 'address']
 
 
+class DonorProfileForm(forms.ModelForm):
+    """
+    BB-F-004: Donor Profile Form
+    Allows registered donors to view and update their profile details.
+    """
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields['blood_group'].label = 'Blood Group'
+        self.fields['age'].label = 'Age'
+        self.fields['contact_phone'].label = 'Contact Phone Number'
+        self.fields['address'].label = 'Residential Address'
+
+        for field_name, field in self.fields.items():
+            field.widget.attrs.update({
+                'class': 'form-control',
+            })
+
+        self.fields['age'].widget.attrs.update({
+            'placeholder': 'Enter age (e.g. 25)',
+            'min': '18',
+            'max': '65',
+        })
+        self.fields['contact_phone'].widget.attrs.update({
+            'placeholder': 'e.g. +91 9876543210',
+        })
+        self.fields['address'].widget.attrs.update({
+            'rows': 3,
+            'placeholder': 'Enter your residential address...',
+        })
+
+    def clean_age(self):
+        age = self.cleaned_data.get('age')
+        if age is not None and (age < 18 or age > 65):
+            raise forms.ValidationError('Blood donors must be between 18 and 65 years of age.')
+        return age
+
+    class Meta:
+        model = DonorProfile
+        fields = ['blood_group', 'age', 'contact_phone', 'address']
+
+
 class UserRegisterForm(UserCreationForm):
     """
     BB-NF-003, BB-F-001: Secure User Registration
@@ -167,5 +208,3 @@ class UserRegisterForm(UserCreationForm):
     class Meta:
         model = User
         fields = ['username', 'email']
-
-

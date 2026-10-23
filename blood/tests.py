@@ -9,7 +9,7 @@ from django.test import TestCase
 from django.urls import reverse
 
 from .admin import DonationAdmin
-from .models import BloodInventory, BloodRequest, Donation, PatientProfile
+from .models import BloodInventory, BloodRequest, Donation, PatientProfile, DonorProfile
 from .services import review_donation
 
 
@@ -615,3 +615,74 @@ class SecurityAndAuthenticationTests(TestCase):
             settings.SESSION_EXPIRE_AT_BROWSER_CLOSE,
             "Session should expire at browser close for security."
         )
+
+
+
+class DonorProfileManagementTests(TestCase):
+    """
+    BB-F-004: Donor Profile Management (TC-DON-01, BB-SR-002)
+    """
+    def setUp(self):
+        self.donor = User.objects.create_user(
+            username="profile_donor",
+            password="securepassword123"
+        )
+
+    def test_donor_can_view_profile_form(self):
+        self.client.force_login(self.donor)
+        response = self.client.get(reverse("donor_profile"))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "profile_donor's Profile")
+        self.assertIn("form", response.context)
+        self.assertTrue(DonorProfile.objects.filter(user=self.donor).exists())
+
+    def test_donor_can_update_permitted_details(self):
+        self.client.force_login(self.donor)
+        response = self.client.post(
+            reverse("donor_profile"),
+            {
+                "blood_group": "O+",
+                "age": 28,
+                "contact_phone": "+91-9876543210",
+                "address": "456 Donor Boulevard, Bengaluru",
+            }
+        )
+        self.assertEqual(response.status_code, 302)
+        profile = DonorProfile.objects.get(user=self.donor)
+        self.assertEqual(profile.blood_group, "O+")
+        self.assertEqual(profile.age, 28)
+        self.assertEqual(profile.contact_phone, "+91-9876543210")
+        self.assertEqual(profile.address, "456 Donor Boulevard, Bengaluru")
+
+    def test_invalid_profile_data_is_rejected(self):
+        self.client.force_login(self.donor)
+        response = self.client.post(
+            reverse("donor_profile"),
+            {
+                "blood_group": "INVALID",
+                "age": 200,  # Invalid age (exceeds donor criteria)
+                "contact_phone": "123",
+            }
+        )
+        self.assertEqual(response.status_code, 200)
+        profile = DonorProfile.objects.get(user=self.donor)
+        self.assertNotEqual(profile.age, 200)
+        self.assertNotEqual(profile.blood_group, "INVALID")
+
+    def test_underage_donor_profile_is_rejected(self):
+        self.client.force_login(self.donor)
+        response = self.client.post(
+            reverse("donor_profile"),
+            {
+                "blood_group": "A+",
+                "age": 16,  # Below 18
+            }
+        )
+        self.assertEqual(response.status_code, 200)
+        profile = DonorProfile.objects.get(user=self.donor)
+        self.assertNotEqual(profile.age, 16)
+
+    def test_unauthenticated_user_cannot_access_donor_profile(self):
+        response = self.client.get(reverse("donor_profile"))
+        self.assertEqual(response.status_code, 302)
+        self.assertIn("/accounts/login", response.url)

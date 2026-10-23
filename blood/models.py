@@ -120,3 +120,28 @@ class PatientProfile(models.Model):
     def __str__(self):
         return f"PatientProfile: {self.user.username} ({self.blood_group or 'Unspecified'})"
 
+
+
+class DonorProfile(models.Model):
+    """
+    BB-F-004: Donor Profile Management
+    Stores profile details for registered blood donors.
+    """
+    user = models.OneToOneField(
+        User,
+        on_delete=models.CASCADE,
+        related_name='donor_profile'
+    )
+    blood_group = models.CharField(
+        max_length=3,
+        choices=Donation.BLOOD_GROUPS,
+        blank=True
+    )
+    age = models.PositiveSmallIntegerField(null=True, blank=True)
+    contact_phone = models.CharField(max_length=20, blank=True)
+    address = models.TextField(blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f"DonorProfile: {self.user.username} ({self.blood_group or 'Unspecified'})"
