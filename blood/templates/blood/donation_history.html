@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Donation History - Blood Bank Management System</title>
+    <style>
+        :root {
+            --primary: #dc2626;
+            --primary-dark: #991b1b;
+            --background: #f8fafc;
+            --panel: #ffffff;
+            --border: #e2e8f0;
+            --text-dark: #0f172a;
+            --text-muted: #64748b;
+            --success: #16a34a;
+            --success-bg: #dcfce7;
+            --warning: #d97706;
+            --warning-bg: #fef3c7;
+            --danger: #dc2626;
+            --danger-bg: #fee2e2;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            background: linear-gradient(135deg, #fef2f2 0%, #f8fafc 50%, #eff6ff 100%);
+            color: var(--text-dark);
+            min-height: 100vh;
+            padding: 40px 20px;
+        }
+
+        .container {
+            max-width: 960px;
+            margin: 0 auto;
+        }
+
+        .header-panel {
+            background: linear-gradient(135deg, var(--primary-dark) 0%, var(--primary) 100%);
+            color: #ffffff;
+            border-radius: 20px;
+            padding: 32px 36px;
+            box-shadow: 0 15px 30px rgba(220, 38, 38, 0.18);
+            margin-bottom: 24px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 16px;
+        }
+
+        .header-panel h1 {
+            font-size: 1.85rem;
+            font-weight: 700;
+            letter-spacing: -0.5px;
+            margin-bottom: 6px;
+        }
+
+        .header-panel p {
+            color: #fecaca;
+            font-size: 0.95rem;
+        }
+
+        .btn-donate {
+            background: #ffffff;
+            color: var(--primary-dark);
+            font-weight: 700;
+            text-decoration: none;
+            padding: 12px 22px;
+            border-radius: 12px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.08);
+            transition: all 0.2s ease;
+        }
+
+        .btn-donate:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.12);
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 24px;
+            flex-wrap: wrap;
+        }
+
+        .nav-links a {
+            text-decoration: none;
+            padding: 8px 16px;
+            border-radius: 10px;
+            font-size: 0.88rem;
+            font-weight: 600;
+            background: #ffffff;
+            color: var(--text-dark);
+            border: 1px solid var(--border);
+            transition: all 0.2s ease;
+        }
+
+        .nav-links a:hover {
+            border-color: var(--primary);
+            color: var(--primary);
+        }
+
+        .card-table {
+            background: var(--panel);
+            border: 1px solid var(--border);
+            border-radius: 18px;
+            overflow: hidden;
+            box-shadow: 0 6px 18px rgba(0, 0, 0, 0.04);
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            text-align: left;
+        }
+
+        th {
+            background: #f8fafc;
+            color: var(--text-muted);
+            font-size: 0.8rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.6px;
+            padding: 16px 20px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        td {
+            padding: 18px 20px;
+            border-bottom: 1px solid #f1f5f9;
+            font-size: 0.92rem;
+            vertical-align: middle;
+        }
+
+        tr:last-child td {
+            border-bottom: none;
+        }
+
+        tr:hover td {
+            background: #fafaf9;
+        }
+
+        .badge-blood {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 38px;
+            height: 38px;
+            border-radius: 50%;
+            background: #fee2e2;
+            color: var(--primary-dark);
+            font-weight: 800;
+            font-size: 0.92rem;
+            border: 1.5px solid #fca5a5;
+        }
+
+        .status-pill {
+            display: inline-block;
+            padding: 5px 12px;
+            border-radius: 16px;
+            font-size: 0.78rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.4px;
+        }
+
+        .status-Pending {
+            background: var(--warning-bg);
+            color: var(--warning);
+        }
+
+        .status-Approved {
+            background: var(--success-bg);
+            color: var(--success);
+        }
+
+        .status-Rejected {
+            background: var(--danger-bg);
+            color: var(--danger);
+        }
+
+        .empty-state {
+            padding: 60px 20px;
+            text-align: center;
+            color: var(--text-muted);
+        }
+
+        .empty-state h3 {
+            font-size: 1.25rem;
+            color: var(--text-dark);
+            margin-bottom: 8px;
+        }
+
+        .empty-state p {
+            font-size: 0.95rem;
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header class="header-panel">
+            <div>
+                <h1>My Donation History</h1>
+                <p>Welcome, {{ user.username }}. Here is a summary of all your past blood donations.</p>
+            </div>
+            <a href="{% url 'submit_donation' %}" class="btn-donate">+ Donate Blood</a>
+        </header>
+
+        <nav class="nav-links">
+            <a href="{% url 'blood_availability' %}">Blood Availability</a>
+            <a href="{% url 'submit_donation' %}">Submit New Donation</a>
+        </nav>
+
+        <main class="card-table">
+            {% if donations %}
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Blood Group</th>
+                            <th>Units</th>
+                            <th>Donation Date</th>
+                            <th>Status</th>
+                            <th>Notes</th>
+                            <th>Review Info</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for donation in donations %}
+                            <tr id="donation-row-{{ donation.id }}">
+                                <td><span class="badge-blood">{{ donation.blood_group }}</span></td>
+                                <td><strong>{{ donation.units }}</strong> unit{{ donation.units|pluralize }}</td>
+                                <td>{{ donation.donation_date }}</td>
+                                <td>
+                                    <span class="status-pill status-{{ donation.status }}">{{ donation.status }}</span>
+                                </td>
+                                <td>{{ donation.notes|default:"—" }}</td>
+                                <td>
+                                    {% if donation.status == 'Pending' %}
+                                        <span style="color: var(--text-muted); font-size: 0.85rem;">Pending Staff Review</span>
+                                    {% else %}
+                                        <span style="font-size: 0.85rem;">
+                                            Reviewed {% if donation.reviewed_at %}on {{ donation.reviewed_at|date:"M d, Y" }}{% endif %}
+                                        </span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            {% else %}
+                <div class="empty-state">
+                    <h3>No Donations Recorded</h3>
+                    <p>You have not submitted any blood donations yet. Your generosity saves lives!</p>
+                    <a href="{% url 'submit_donation' %}" class="btn-donate" style="background: var(--primary); color: #fff;">Make Your First Donation</a>
+                </div>
+            {% endif %}
+        </main>
+    </div>
+</body>
+</html>

@@ -8,6 +8,11 @@ urlpatterns = [
         name='submit_donation'
     ),
     path(
+        'requests/submit/',
+        views.submit_blood_request,
+        name='submit_blood_request'
+    ),
+    path(
         'staff/donations/',
         views.manage_donations,
         name='manage_donations'
@@ -16,5 +21,48 @@ urlpatterns = [
         'staff/donations/<int:donation_id>/review/',
         views.review_donation,
         name='review_donation'
+    ),
+    path(
+        'inventory/availability/',
+        views.view_blood_availability,
+        name='blood_availability'
+    ),
+    path(
+        'donations/history/',
+        views.donation_history,
+        name='donation_history'
+    ),
+    path(
+        'requests/history/',
+        views.blood_request_history,
+        name='blood_request_history'
+    ),
+    path(
+        'patient/profile/',
+        views.patient_profile,
+        name='patient_profile'
+    ),
+    path(
+        'login/',
+        views.login_view,
+        name='login'
+    ),
+    path(
+        'accounts/login/',
+        views.login_view,
+    ),
+    path(
+        'logout/',
+        views.logout_view,
+        name='logout'
+    ),
+    path(
+        'accounts/logout/',
+        views.logout_view,
+    ),
+    path(
+        'register/',
+        views.register_view,
+        name='register'
     ),
 ]

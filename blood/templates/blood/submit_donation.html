@@ -1,21 +1,210 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Submit Blood Donation</title>
+    <style>
+        :root {
+            --primary: #c62828;
+            --primary-dark: #8e0000;
+            --background: #fff5f5;
+            --panel: #ffffff;
+            --muted: #6b7280;
+            --text: #1f2937;
+            --border: #f1c0c0;
+            --success: #1f8f4d;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            font-family: Arial, sans-serif;
+            background: linear-gradient(135deg, #fff5f5 0%, #ffe0e0 100%);
+            color: var(--text);
+        }
+
+        .page-wrap {
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 40px 20px;
+        }
+
+        .card {
+            width: min(760px, 100%);
+            background: var(--panel);
+            border: 1px solid var(--border);
+            border-radius: 18px;
+            box-shadow: 0 20px 40px rgba(198, 40, 40, 0.10);
+            overflow: hidden;
+        }
+
+        .hero {
+            padding: 30px 32px 20px;
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+            color: white;
+        }
+
+        .hero h1 {
+            margin: 0;
+            font-size: clamp(2rem, 3vw, 2.5rem);
+        }
+
+        .hero p {
+            margin: 10px 0 0;
+            opacity: 0.9;
+            font-size: 1rem;
+        }
+
+        .content {
+            padding: 30px 32px 32px;
+        }
+
+        .alert {
+            padding: 12px 14px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            font-size: 0.96rem;
+        }
+
+        .alert-success {
+            background: #eafaf1;
+            color: var(--success);
+            border: 1px solid #bfe6ce;
+        }
+
+        .alert-error {
+            background: #fff0f0;
+            color: var(--primary-dark);
+            border: 1px solid #f5c2c2;
+        }
+
+        form {
+            display: grid;
+            gap: 18px;
+        }
+
+        .field {
+            display: grid;
+            gap: 8px;
+        }
+
+        .field label {
+            font-weight: 700;
+            color: var(--text);
+        }
+
+        .field input,
+        .field select,
+        .field textarea {
+            width: 100%;
+            padding: 12px 14px;
+            border: 1px solid #e0c4c4;
+            border-radius: 10px;
+            font-size: 1rem;
+            background: #fff;
+            transition: border-color 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .field input:focus,
+        .field select:focus,
+        .field textarea:focus {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(198, 40, 40, 0.09);
+            outline: none;
+        }
+
+        .errorlist {
+            margin: 0;
+            padding: 0;
+            list-style: none;
+            color: var(--primary-dark);
+            font-size: 0.9rem;
+        }
+
+        .errorlist li {
+            background: #fff0f0;
+            border: 1px solid #f5c2c2;
+            border-radius: 8px;
+            padding: 8px 10px;
+        }
+
+        .submit-btn {
+            border: none;
+            border-radius: 10px;
+            padding: 14px 18px;
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+            color: white;
+            font-size: 1rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: transform 0.15s ease, box-shadow 0.15s ease;
+            box-shadow: 0 8px 20px rgba(198, 40, 40, 0.18);
+        }
+
+        .submit-btn:hover {
+            transform: translateY(-1px);
+        }
+
+        .secondary-note {
+            margin-top: -6px;
+            color: var(--muted);
+            font-size: 0.92rem;
+        }
+
+        @media (max-width: 600px) {
+            .hero,
+            .content {
+                padding-left: 18px;
+                padding-right: 18px;
+            }
+        }
+    </style>
 </head>
 <body>
-    <h1>Submit Blood Donation</h1>
+    <div class="page-wrap">
+        <div class="card">
+            <div class="hero">
+                <h1>Submit Blood Donation</h1>
+                <p>Help save lives by recording a new donor contribution.</p>
+            </div>
 
-    <p>Enter your donation details below.</p>
+            <div class="content">
+                {% if messages %}
+                    {% for message in messages %}
+                        <div class="alert alert-success">{{ message }}</div>
+                    {% endfor %}
+                {% endif %}
 
-    <form method="post">
-        {% csrf_token %}
-        {{ form.as_p }}
+                <form method="post" novalidate>
+                    {% csrf_token %}
 
-        <button type="submit">Submit Donation</button>
-    </form>
+                    {% for field in form %}
+                        <div class="field">
+                            {{ field.label_tag }}
+                            {{ field }}
+                            {% if field.help_text %}
+                                <small class="secondary-note">{{ field.help_text }}</small>
+                            {% endif %}
+                            {% if field.errors %}
+                                <ul class="errorlist">
+                                    {% for error in field.errors %}
+                                        <li>{{ error }}</li>
+                                    {% endfor %}
+                                </ul>
+                            {% endif %}
+                        </div>
+                    {% endfor %}
+
+                    <button type="submit" class="submit-btn">Submit Donation</button>
+                </form>
+            </div>
+        </div>
+    </div>
 </body>
 </html>

@@ -128,3 +128,14 @@ MAILERS = {
         'BACKEND': 'django.core.mail.backends.console.EmailBackend',
     },
 }
+
+# Security and Session Management (BB-NF-003, BB-SR-001, BB-SR-002)
+LOGIN_URL = '/accounts/login/'
+LOGIN_REDIRECT_URL = 'blood_availability'
+LOGOUT_REDIRECT_URL = 'login'
+
+SESSION_COOKIE_HTTPONLY = True
+SESSION_COOKIE_AGE = 86400  # 24 hours
+SESSION_EXPIRE_AT_BROWSER_CLOSE = True
+CSRF_COOKIE_HTTPONLY = False
+

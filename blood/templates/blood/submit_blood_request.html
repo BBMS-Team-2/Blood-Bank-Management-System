@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Submit Blood Request</title>
+    <style>
+        :root {
+            --primary: #1d4ed8;
+            --primary-dark: #1e3a8a;
+            --background: #eef6ff;
+            --panel: #ffffff;
+            --border: #dbeafe;
+            --text: #1f2937;
+            --muted: #6b7280;
+            --success: #1f8f4d;
+            --danger: #b91c1c;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            font-family: Arial, sans-serif;
+            background: linear-gradient(135deg, #eef6ff 0%, #dbeafe 100%);
+            color: var(--text);
+        }
+
+        .page-wrap {
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 40px 20px;
+        }
+
+        .card {
+            width: min(760px, 100%);
+            background: var(--panel);
+            border: 1px solid var(--border);
+            border-radius: 18px;
+            box-shadow: 0 18px 35px rgba(29, 78, 216, 0.10);
+            overflow: hidden;
+        }
+
+        .hero {
+            padding: 28px 32px 18px;
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+            color: #fff;
+        }
+
+        .hero h1 {
+            margin: 0;
+            font-size: clamp(1.9rem, 2.5vw, 2.5rem);
+        }
+
+        .hero p {
+            margin: 10px 0 0;
+            opacity: 0.9;
+        }
+
+        .content {
+            padding: 30px 32px 32px;
+        }
+
+        .alert {
+            padding: 12px 14px;
+            border-radius: 10px;
+            margin-bottom: 18px;
+            font-size: 0.96rem;
+        }
+
+        .alert-success {
+            background: #eafaf1;
+            color: var(--success);
+            border: 1px solid #bfe6ce;
+        }
+
+        form {
+            display: grid;
+            gap: 18px;
+        }
+
+        .field {
+            display: grid;
+            gap: 8px;
+        }
+
+        .field label {
+            font-weight: 700;
+        }
+
+        .field input,
+        .field select,
+        .field textarea {
+            width: 100%;
+            padding: 12px 14px;
+            border: 1px solid #bed6ff;
+            border-radius: 10px;
+            font-size: 1rem;
+            background: #fff;
+            transition: border-color 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .field input:focus,
+        .field select:focus,
+        .field textarea:focus {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(29, 78, 216, 0.09);
+            outline: none;
+        }
+
+        .errorlist {
+            margin: 0;
+            padding: 0;
+            list-style: none;
+            color: var(--danger);
+            font-size: 0.9rem;
+        }
+
+        .errorlist li {
+            background: #fff1f1;
+            border: 1px solid #fecaca;
+            border-radius: 8px;
+            padding: 8px 10px;
+        }
+
+        .submit-btn {
+            border: none;
+            border-radius: 10px;
+            padding: 14px 18px;
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+            color: white;
+            font-size: 1rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: transform 0.15s ease;
+            box-shadow: 0 8px 20px rgba(29, 78, 216, 0.18);
+        }
+
+        .submit-btn:hover {
+            transform: translateY(-1px);
+        }
+
+        .secondary-note {
+            color: var(--muted);
+            font-size: 0.92rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="page-wrap">
+        <div class="card">
+            <div class="hero">
+                <h1>Submit Blood Request</h1>
+                <p>Request the blood units needed for a patient.</p>
+            </div>
+
+            <div class="content">
+                {% if messages %}
+                    {% for message in messages %}
+                        <div class="alert alert-success">{{ message }}</div>
+                    {% endfor %}
+                {% endif %}
+
+                <form method="post" novalidate>
+                    {% csrf_token %}
+
+                    {% for field in form %}
+                        <div class="field">
+                            {{ field.label_tag }}
+                            {{ field }}
+                            {% if field.help_text %}
+                                <small class="secondary-note">{{ field.help_text }}</small>
+                            {% endif %}
+                            {% if field.errors %}
+                                <ul class="errorlist">
+                                    {% for error in field.errors %}
+                                        <li>{{ error }}</li>
+                                    {% endfor %}
+                                </ul>
+                            {% endif %}
+                        </div>
+                    {% endfor %}
+
+                    <button type="submit" class="submit-btn">Submit Request</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
