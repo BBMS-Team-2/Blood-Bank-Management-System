@@ -3,68 +3,280 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Manage Donations</title>
+    <title>Donation Management - Blood Bank Management System</title>
+    <style>
+        :root {
+            --primary: #dc2626;
+            --primary-dark: #991b1b;
+            --background: #f8fafc;
+            --panel: #ffffff;
+            --border: #e2e8f0;
+            --text-dark: #0f172a;
+            --text-muted: #64748b;
+            --success: #16a34a;
+            --success-bg: #dcfce7;
+            --warning: #d97706;
+            --warning-bg: #fef3c7;
+            --danger: #dc2626;
+            --danger-bg: #fee2e2;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            background: linear-gradient(135deg, #fef2f2 0%, #f8fafc 50%, #eff6ff 100%);
+            color: var(--text-dark);
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 1060px;
+            margin: 0 auto;
+            padding: 30px 20px;
+        }
+
+        .header-panel {
+            background: linear-gradient(135deg, var(--primary-dark) 0%, var(--primary) 100%);
+            color: #ffffff;
+            border-radius: 20px;
+            padding: 28px 36px;
+            box-shadow: 0 15px 30px rgba(220, 38, 38, 0.18);
+            margin-bottom: 24px;
+        }
+
+        .header-panel h1 {
+            font-size: 1.85rem;
+            font-weight: 700;
+            letter-spacing: -0.5px;
+            margin-bottom: 6px;
+        }
+
+        .header-panel p {
+            color: #fecaca;
+            font-size: 0.95rem;
+        }
+
+        .alert-box {
+            padding: 12px 16px;
+            border-radius: 12px;
+            margin-bottom: 20px;
+            font-size: 0.92rem;
+            font-weight: 600;
+        }
+
+        .alert-success {
+            background: var(--success-bg);
+            color: var(--success);
+            border: 1px solid #bbf7d0;
+        }
+
+        .alert-warning {
+            background: var(--warning-bg);
+            color: var(--warning);
+            border: 1px solid #fde68a;
+        }
+
+        .card-table {
+            background: var(--panel);
+            border: 1px solid var(--border);
+            border-radius: 18px;
+            overflow: hidden;
+            box-shadow: 0 6px 18px rgba(0, 0, 0, 0.04);
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            text-align: left;
+        }
+
+        th {
+            background: #f8fafc;
+            color: var(--text-muted);
+            font-size: 0.8rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            padding: 16px 20px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        td {
+            padding: 18px 20px;
+            border-bottom: 1px solid #f1f5f9;
+            font-size: 0.92rem;
+            vertical-align: middle;
+        }
+
+        tr:last-child td {
+            border-bottom: none;
+        }
+
+        tr:hover td {
+            background: #fafaf9;
+        }
+
+        .badge-blood {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 38px;
+            height: 38px;
+            border-radius: 50%;
+            background: #fee2e2;
+            color: var(--primary-dark);
+            font-weight: 800;
+            font-size: 0.92rem;
+            border: 1.5px solid #fca5a5;
+        }
+
+        .status-pill {
+            display: inline-block;
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 0.78rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.4px;
+        }
+
+        .status-pending {
+            background: var(--warning-bg);
+            color: var(--warning);
+        }
+
+        .status-approved {
+            background: var(--success-bg);
+            color: var(--success);
+        }
+
+        .status-rejected {
+            background: var(--danger-bg);
+            color: var(--danger);
+        }
+
+        .action-form {
+            display: inline-flex;
+            gap: 8px;
+        }
+
+        .btn-action {
+            border: none;
+            padding: 7px 14px;
+            border-radius: 8px;
+            font-size: 0.84rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.15s ease;
+        }
+
+        .btn-approve {
+            background: #16a34a;
+            color: #ffffff;
+        }
+
+        .btn-approve:hover {
+            background: #15803d;
+            box-shadow: 0 4px 10px rgba(22, 163, 74, 0.25);
+        }
+
+        .btn-reject {
+            background: #dc2626;
+            color: #ffffff;
+        }
+
+        .btn-reject:hover {
+            background: #b91c1c;
+            box-shadow: 0 4px 10px rgba(220, 38, 38, 0.25);
+        }
+
+        .reviewed-by-text {
+            color: var(--text-muted);
+            font-size: 0.85rem;
+        }
+
+        .empty-state {
+            padding: 60px 20px;
+            text-align: center;
+            color: var(--text-muted);
+        }
+    </style>
 </head>
 <body>
-    <h1>Donation Management</h1>
+    {% include "blood/navbar.html" %}
 
-    {% if messages %}
-        {% for message in messages %}
-            <p>{{ message }}</p>
-        {% endfor %}
-    {% endif %}
+    <div class="container">
+        <header class="header-panel">
+            <h1>Donation Review Management</h1>
+            <p>Review submitted donor contributions, approve or reject donations, and update inventory stock atomically.</p>
+        </header>
 
-    {% if donations %}
-        <table border="1" cellpadding="8">
-            <thead>
-                <tr>
-                    <th>Donor</th>
-                    <th>Blood Group</th>
-                    <th>Date</th>
-                    <th>Expiry Date</th>
-                    <th>Units</th>
-                    <th>Status</th>
-                    <th>Review</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for donation in donations %}
-                    <tr>
-                        <td>{{ donation.donor.username }}</td>
-                        <td>{{ donation.blood_group }}</td>
-                        <td>{{ donation.donation_date }}</td>
-                        <td>{{ donation.expiry_date|default:"-" }}</td>
-                        <td>{{ donation.units }}</td>
-                        <td>{{ donation.status }}</td>
-                        <td>
-                            {% if donation.status == 'Pending' %}
-                                <form method="post"
-                                      action="{% url 'review_donation' donation.id %}">
-                                    {% csrf_token %}
-                                    <button type="submit"
-                                            name="action"
-                                            value="approve">
-                                        Approve
-                                    </button>
-                                    <button type="submit"
-                                            name="action"
-                                            value="reject">
-                                        Reject
-                                    </button>
-                                </form>
-                            {% else %}
-                                Reviewed
-                                {% if donation.reviewed_by %}
-                                    by {{ donation.reviewed_by.username }}
-                                {% endif %}
-                            {% endif %}
-                        </td>
-                    </tr>
-                {% endfor %}
-            </tbody>
-        </table>
-    {% else %}
-        <p>No donations submitted yet.</p>
-    {% endif %}
+        {% if messages %}
+            {% for message in messages %}
+                <div class="alert-box alert-success">{{ message }}</div>
+            {% endfor %}
+        {% endif %}
+
+        <main class="card-table">
+            {% if donations %}
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Donor</th>
+                            <th>Blood Group</th>
+                            <th>Donation Date</th>
+                            <th>Expiry Date</th>
+                            <th>Units</th>
+                            <th>Status</th>
+                            <th>Review Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for donation in donations %}
+                            <tr>
+                                <td><strong>{{ donation.donor.username }}</strong></td>
+                                <td><span class="badge-blood">{{ donation.blood_group }}</span></td>
+                                <td>{{ donation.donation_date }}</td>
+                                <td>{{ donation.expiry_date|default:"-" }}</td>
+                                <td><strong>{{ donation.units }}</strong> unit{{ donation.units|pluralize }}</td>
+                                <td>
+                                    <span class="status-pill status-{{ donation.status|lower }}">
+                                        {{ donation.status }}
+                                    </span>
+                                </td>
+                                <td>
+                                    {% if donation.status == 'Pending' %}
+                                        <form method="post" action="{% url 'review_donation' donation.id %}" class="action-form">
+                                            {% csrf_token %}
+                                            <button type="submit" name="action" value="approve" class="btn-action btn-approve">
+                                                Approve
+                                            </button>
+                                            <button type="submit" name="action" value="reject" class="btn-action btn-reject">
+                                                Reject
+                                            </button>
+                                        </form>
+                                    {% else %}
+                                        <span class="reviewed-by-text">
+                                            Reviewed{% if donation.reviewed_by %} by <strong>{{ donation.reviewed_by.username }}</strong>{% endif %}
+                                        </span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            {% else %}
+                <div class="empty-state">
+                    <h3>No donations recorded yet</h3>
+                    <p>Submitted donations will appear here for staff review.</p>
+                </div>
+            {% endif %}
+        </main>
+    </div>
 </body>
 </html>
