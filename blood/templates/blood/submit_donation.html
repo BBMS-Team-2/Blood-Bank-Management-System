@@ -14,6 +14,7 @@
             --text: #1f2937;
             --border: #f1c0c0;
             --success: #1f8f4d;
+            --danger: #b91c1c;
         }
 
         * {
@@ -70,18 +71,19 @@
             border-radius: 10px;
             margin-bottom: 20px;
             font-size: 0.96rem;
+            border: 1px solid transparent;
         }
 
         .alert-success {
             background: #eafaf1;
             color: var(--success);
-            border: 1px solid #bfe6ce;
+            border-color: #bfe6ce;
         }
 
         .alert-error {
             background: #fff0f0;
             color: var(--primary-dark);
-            border: 1px solid #f5c2c2;
+            border-color: #f5c2c2;
         }
 
         form {
@@ -113,7 +115,8 @@
 
         .field input:focus,
         .field select:focus,
-        .field textarea:focus {
+        .field textarea:focus,
+        .submit-btn:focus-visible {
             border-color: var(--primary);
             box-shadow: 0 0 0 3px rgba(198, 40, 40, 0.09);
             outline: none;
@@ -123,7 +126,7 @@
             margin: 0;
             padding: 0;
             list-style: none;
-            color: var(--primary-dark);
+            color: var(--danger);
             font-size: 0.9rem;
         }
 
@@ -177,7 +180,7 @@
             <div class="content">
                 {% if messages %}
                     {% for message in messages %}
-                        <div class="alert alert-success">{{ message }}</div>
+                        <div class="alert alert-success" role="status">{{ message }}</div>
                     {% endfor %}
                 {% endif %}
 
