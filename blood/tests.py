@@ -686,3 +686,96 @@ class DonorProfileManagementTests(TestCase):
         response = self.client.get(reverse("donor_profile"))
         self.assertEqual(response.status_code, 302)
         self.assertIn("/accounts/login", response.url)
+
+
+
+class BloodExpiryTrackingTests(TestCase):
+    """
+    BB-F-018: Blood Expiry Tracking (TC-INV-05)
+    The system shall store and display expiry information for blood units
+    where such information is recorded.
+    """
+    def setUp(self):
+        self.donor = User.objects.create_user(
+            username="expiry_donor",
+            password="password123"
+        )
+        self.reviewer = User.objects.create_user(
+            username="expiry_reviewer",
+            password="password123",
+            is_staff=True
+        )
+
+    def test_donation_auto_calculates_expiry_date_42_days_from_donation(self):
+        donation = Donation.objects.create(
+            donor=self.donor,
+            blood_group="O+",
+            donation_date=date.today(),
+            units=2
+        )
+        self.assertIsNotNone(donation.expiry_date)
+        self.assertEqual(
+            donation.expiry_date,
+            date.today() + timedelta(days=42)
+        )
+
+    def test_donation_with_explicit_expiry_date_preserves_custom_date(self):
+        custom_expiry = date.today() + timedelta(days=30)
+        donation = Donation.objects.create(
+            donor=self.donor,
+            blood_group="B+",
+            donation_date=date.today(),
+            expiry_date=custom_expiry,
+            units=1
+        )
+        self.assertEqual(donation.expiry_date, custom_expiry)
+
+    def test_donation_form_rejects_expiry_date_earlier_than_donation_date(self):
+        self.client.force_login(self.donor)
+        response = self.client.post(
+            reverse("submit_donation"),
+            {
+                "blood_group": "AB+",
+                "donation_date": date.today().isoformat(),
+                "expiry_date": (date.today() - timedelta(days=1)).isoformat(),
+                "units": 1,
+            }
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertFalse(
+            Donation.objects.filter(blood_group="AB+").exists()
+        )
+
+    def test_approving_donation_updates_stock_record_with_expiry_info(self):
+        expiry_date = date.today() + timedelta(days=35)
+        donation = Donation.objects.create(
+            donor=self.donor,
+            blood_group="A-",
+            donation_date=date.today(),
+            expiry_date=expiry_date,
+            units=3
+        )
+        self.assertTrue(
+            review_donation(donation.id, self.reviewer, "approve")
+        )
+
+        inventory = BloodInventory.objects.get(blood_group="A-")
+        self.assertEqual(inventory.units, 3)
+        self.assertEqual(inventory.expiry_date, expiry_date)
+        self.assertEqual(inventory.nearest_expiry, expiry_date)
+
+    def test_blood_availability_displays_associated_expiry_date(self):
+        expiry_date = date.today() + timedelta(days=25)
+        BloodInventory.objects.create(
+            blood_group="O-",
+            units=4,
+            expiry_date=expiry_date
+        )
+
+        response = self.client.get(reverse("blood_availability"))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, expiry_date.strftime("%Y-%m-%d"))
+        self.assertContains(response, "Earliest Expiry:")
+
+        data = {item["blood_group"]: item for item in response.context["blood_groups"]}
+        self.assertEqual(data["O-"]["expiry_date"], expiry_date)

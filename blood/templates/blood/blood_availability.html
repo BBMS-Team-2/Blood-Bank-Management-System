@@ -245,6 +245,11 @@
                         <div class="units-count">{{ item.units }}</div>
                         <div class="units-label">Units Available</div>
                         <span class="status-badge status-{{ item.status_class }}">{{ item.status }}</span>
+                        {% if item.expiry_date %}
+                            <div class="expiry-info" style="margin-top: 10px; font-size: 0.8rem; color: var(--text-muted);">
+                                Earliest Expiry: <strong>{{ item.expiry_date|date:"Y-m-d" }}</strong>
+                            </div>
+                        {% endif %}
                     </div>
                 {% endfor %}
             </div>
