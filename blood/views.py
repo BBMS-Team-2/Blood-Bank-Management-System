@@ -189,3 +189,22 @@ def donation_history(request):
     )
 
 
+@login_required
+def blood_request_history(request):
+    """
+    BB-F-015: Blood Request History (BB-SR-003)
+    Allows authenticated patients to view the status and history of their own blood requests.
+    Enforces privacy isolation across patients.
+    """
+    blood_requests = BloodRequest.objects.filter(
+        patient=request.user
+    ).order_by('-needed_by_date', '-created_at')
+
+    return render(
+        request,
+        'blood/blood_request_history.html',
+        {'blood_requests': blood_requests}
+    )
+
+
+

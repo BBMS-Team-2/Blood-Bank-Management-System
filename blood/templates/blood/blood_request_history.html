@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Blood Requests - Blood Bank Management System</title>
+    <style>
+        :root {
+            --primary: #1d4ed8;
+            --primary-dark: #1e3a8a;
+            --background: #f8fafc;
+            --panel: #ffffff;
+            --border: #e2e8f0;
+            --text-dark: #0f172a;
+            --text-muted: #64748b;
+            --success: #16a34a;
+            --success-bg: #dcfce7;
+            --warning: #d97706;
+            --warning-bg: #fef3c7;
+            --danger: #dc2626;
+            --danger-bg: #fee2e2;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            background: linear-gradient(135deg, #eff6ff 0%, #f8fafc 50%, #fef2f2 100%);
+            color: var(--text-dark);
+            min-height: 100vh;
+            padding: 40px 20px;
+        }
+
+        .container {
+            max-width: 960px;
+            margin: 0 auto;
+        }
+
+        .header-panel {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+            color: #ffffff;
+            border-radius: 20px;
+            padding: 32px 36px;
+            box-shadow: 0 15px 30px rgba(29, 78, 216, 0.18);
+            margin-bottom: 24px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 16px;
+        }
+
+        .header-panel h1 {
+            font-size: 1.85rem;
+            font-weight: 700;
+            letter-spacing: -0.5px;
+            margin-bottom: 6px;
+        }
+
+        .header-panel p {
+            color: #dbeafe;
+            font-size: 0.95rem;
+        }
+
+        .btn-request {
+            background: #ffffff;
+            color: var(--primary-dark);
+            font-weight: 700;
+            text-decoration: none;
+            padding: 12px 22px;
+            border-radius: 12px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.08);
+            transition: all 0.2s ease;
+        }
+
+        .btn-request:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.12);
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 24px;
+            flex-wrap: wrap;
+        }
+
+        .nav-links a {
+            text-decoration: none;
+            padding: 8px 16px;
+            border-radius: 10px;
+            font-size: 0.88rem;
+            font-weight: 600;
+            background: #ffffff;
+            color: var(--text-dark);
+            border: 1px solid var(--border);
+            transition: all 0.2s ease;
+        }
+
+        .nav-links a:hover {
+            border-color: var(--primary);
+            color: var(--primary);
+        }
+
+        .card-table {
+            background: var(--panel);
+            border: 1px solid var(--border);
+            border-radius: 18px;
+            overflow: hidden;
+            box-shadow: 0 6px 18px rgba(0, 0, 0, 0.04);
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            text-align: left;
+        }
+
+        th {
+            background: #f8fafc;
+            color: var(--text-muted);
+            font-size: 0.8rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.6px;
+            padding: 16px 20px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        td {
+            padding: 18px 20px;
+            border-bottom: 1px solid #f1f5f9;
+            font-size: 0.92rem;
+            vertical-align: middle;
+        }
+
+        tr:last-child td {
+            border-bottom: none;
+        }
+
+        tr:hover td {
+            background: #fafaf9;
+        }
+
+        .badge-blood {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 38px;
+            height: 38px;
+            border-radius: 50%;
+            background: #dbeafe;
+            color: var(--primary-dark);
+            font-weight: 800;
+            font-size: 0.92rem;
+            border: 1.5px solid #93c5fd;
+        }
+
+        .status-pill {
+            display: inline-block;
+            padding: 5px 12px;
+            border-radius: 16px;
+            font-size: 0.78rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.4px;
+        }
+
+        .status-Pending {
+            background: var(--warning-bg);
+            color: var(--warning);
+        }
+
+        .status-Approved {
+            background: var(--success-bg);
+            color: var(--success);
+        }
+
+        .status-Rejected {
+            background: var(--danger-bg);
+            color: var(--danger);
+        }
+
+        .empty-state {
+            padding: 60px 20px;
+            text-align: center;
+            color: var(--text-muted);
+        }
+
+        .empty-state h3 {
+            font-size: 1.25rem;
+            color: var(--text-dark);
+            margin-bottom: 8px;
+        }
+
+        .empty-state p {
+            font-size: 0.95rem;
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header class="header-panel">
+            <div>
+                <h1>My Blood Requests</h1>
+                <p>Welcome, {{ user.username }}. Track the live status of your blood requests here.</p>
+            </div>
+            <a href="{% url 'submit_blood_request' %}" class="btn-request">+ New Blood Request</a>
+        </header>
+
+        <nav class="nav-links">
+            <a href="{% url 'blood_availability' %}">Blood Availability</a>
+            <a href="{% url 'submit_blood_request' %}">Submit Blood Request</a>
+        </nav>
+
+        <main class="card-table">
+            {% if blood_requests %}
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Blood Group</th>
+                            <th>Units</th>
+                            <th>Needed By</th>
+                            <th>Status</th>
+                            <th>Notes</th>
+                            <th>Requested On</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for req in blood_requests %}
+                            <tr id="request-row-{{ req.id }}">
+                                <td><span class="badge-blood">{{ req.blood_group }}</span></td>
+                                <td><strong>{{ req.units }}</strong> unit{{ req.units|pluralize }}</td>
+                                <td>{{ req.needed_by_date }}</td>
+                                <td>
+                                    <span class="status-pill status-{{ req.status }}">{{ req.status }}</span>
+                                </td>
+                                <td>{{ req.notes|default:"—" }}</td>
+                                <td>{{ req.created_at|date:"M d, Y" }}</td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            {% else %}
+                <div class="empty-state">
+                    <h3>No Requests Submitted</h3>
+                    <p>You have not submitted any blood requests yet.</p>
+                    <a href="{% url 'submit_blood_request' %}" class="btn-request" style="background: var(--primary); color: #fff;">Submit a Blood Request</a>
+                </div>
+            {% endif %}
+        </main>
+    </div>
+</body>
+</html>
