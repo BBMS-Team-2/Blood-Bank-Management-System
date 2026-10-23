@@ -89,3 +89,34 @@ class BloodInventory(models.Model):
 
     def __str__(self):
         return f"{self.blood_group}: {self.units} units"
+
+
+class PatientProfile(models.Model):
+    """
+    BB-F-008: Patient Profile Management
+    Stores profile details for patients submitting blood requests.
+    """
+    user = models.OneToOneField(
+        User,
+        on_delete=models.CASCADE,
+        related_name='patient_profile'
+    )
+    blood_group = models.CharField(
+        max_length=3,
+        choices=Donation.BLOOD_GROUPS,
+        blank=True
+    )
+    age = models.PositiveSmallIntegerField(null=True, blank=True)
+    disease = models.CharField(
+        max_length=150,
+        blank=True,
+        help_text='Medical reason or condition requiring blood support'
+    )
+    contact_phone = models.CharField(max_length=20, blank=True)
+    address = models.TextField(blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f"PatientProfile: {self.user.username} ({self.blood_group or 'Unspecified'})"
+
