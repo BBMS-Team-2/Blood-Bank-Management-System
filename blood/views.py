@@ -7,8 +7,8 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.utils import timezone
 from django.views.decorators.http import require_POST
 
-from .forms import DonationForm, BloodRequestForm
-from .models import Donation, BloodInventory, BloodRequest
+from .forms import DonationForm, BloodRequestForm, PatientProfileForm
+from .models import Donation, BloodInventory, BloodRequest, PatientProfile
 
 
 @login_required
@@ -205,6 +205,34 @@ def blood_request_history(request):
         'blood/blood_request_history.html',
         {'blood_requests': blood_requests}
     )
+
+
+@login_required
+def patient_profile(request):
+    """
+    BB-F-008: Patient Profile Management
+    Allows authenticated patients to view and update their profile details.
+    """
+    profile, _ = PatientProfile.objects.get_or_create(user=request.user)
+
+    if request.method == 'POST':
+        form = PatientProfileForm(request.POST, instance=profile)
+        if form.is_valid():
+            form.save()
+            messages.success(request, 'Your patient profile has been updated successfully.')
+            return redirect('patient_profile')
+    else:
+        form = PatientProfileForm(instance=profile)
+
+    return render(
+        request,
+        'blood/patient_profile.html',
+        {
+            'form': form,
+            'profile': profile,
+        }
+    )
+
 
 
 
