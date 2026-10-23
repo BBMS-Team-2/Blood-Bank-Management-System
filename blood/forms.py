@@ -1,6 +1,8 @@
 from datetime import date
 
 from django import forms
+from django.contrib.auth.forms import UserCreationForm
+from django.contrib.auth.models import User
 
 from .models import Donation, BloodRequest, PatientProfile
 
@@ -146,4 +148,24 @@ class PatientProfileForm(forms.ModelForm):
     class Meta:
         model = PatientProfile
         fields = ['blood_group', 'age', 'disease', 'contact_phone', 'address']
+
+
+class UserRegisterForm(UserCreationForm):
+    """
+    BB-NF-003, BB-F-001: Secure User Registration
+    Uses Django's cryptographic password hashing (PBKDF2) and strong validation.
+    """
+    email = forms.EmailField(required=True, label='Email Address')
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        for field in self.fields.values():
+            field.widget.attrs.update({
+                'class': 'form-control',
+            })
+
+    class Meta:
+        model = User
+        fields = ['username', 'email']
+
 
