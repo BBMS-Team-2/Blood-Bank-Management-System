@@ -11,11 +11,12 @@ class DonationAdmin(admin.ModelAdmin):
         'donor',
         'blood_group',
         'donation_date',
+        'expiry_date',
         'units',
         'status',
         'reviewed_by',
     )
-    list_filter = ('status', 'blood_group', 'donation_date')
+    list_filter = ('status', 'blood_group', 'donation_date', 'expiry_date')
     search_fields = ('donor__username', 'donor__email')
     readonly_fields = (
         'status',
@@ -51,8 +52,8 @@ class DonationAdmin(admin.ModelAdmin):
 
 @admin.register(BloodInventory)
 class BloodInventoryAdmin(admin.ModelAdmin):
-    list_display = ('blood_group', 'units', 'updated_at')
-    list_filter = ('blood_group',)
+    list_display = ('blood_group', 'units', 'expiry_date', 'updated_at')
+    list_filter = ('blood_group', 'expiry_date')
 
 
 @admin.register(BloodRequest)

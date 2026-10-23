@@ -27,7 +27,8 @@
 
         body {
             margin: 0;
-            padding: 40px 20px;
+            padding: 0;
+            min-height: 100vh;
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
             color: var(--text-dark);
             background: linear-gradient(135deg, #fef2f2 0%, #f8fafc 50%, #eff6ff 100%);
@@ -36,6 +37,7 @@
         .container {
             max-width: 1180px;
             margin: 0 auto;
+            padding: 30px 20px 50px 20px;
         }
 
         .header-panel {
@@ -44,11 +46,6 @@
             border-radius: 20px;
             padding: 32px 36px;
             box-shadow: 0 15px 30px rgba(220, 38, 38, 0.18);
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            flex-wrap: wrap;
-            gap: 18px;
             margin-bottom: 24px;
         }
 
@@ -61,29 +58,6 @@
             margin: 0;
             color: #fecaca;
             font-size: 0.95rem;
-        }
-
-        .nav-links {
-            display: flex;
-            gap: 12px;
-            flex-wrap: wrap;
-            margin-bottom: 24px;
-        }
-
-        .nav-links a {
-            text-decoration: none;
-            background: var(--panel);
-            color: var(--text-dark);
-            border: 1px solid var(--border);
-            border-radius: 10px;
-            padding: 10px 16px;
-            font-size: 0.88rem;
-            font-weight: 600;
-        }
-
-        .nav-links a:hover {
-            border-color: var(--primary);
-            color: var(--primary);
         }
 
         .card {
@@ -134,6 +108,20 @@
         tr:last-child td { border-bottom: none; }
         tr:hover td { background: #fafaf9; }
 
+        .badge-blood {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 38px;
+            height: 38px;
+            border-radius: 50%;
+            background: #fee2e2;
+            color: var(--primary-dark);
+            font-weight: 800;
+            font-size: 0.92rem;
+            border: 1.5px solid #fca5a5;
+        }
+
         .status-pill {
             display: inline-block;
             padding: 5px 12px;
@@ -156,27 +144,35 @@
 
         .action-btn {
             border: none;
-            border-radius: 10px;
-            padding: 10px 14px;
+            border-radius: 8px;
+            padding: 8px 14px;
             font-weight: 700;
+            font-size: 0.84rem;
             cursor: pointer;
-            transition: transform 0.15s ease;
+            transition: transform 0.15s ease, box-shadow 0.15s ease;
         }
 
         .action-btn:hover { transform: translateY(-1px); }
 
         .action-btn.approve {
-            background: var(--success-bg);
-            color: var(--success);
+            background: #16a34a;
+            color: white;
+        }
+        .action-btn.approve:hover {
+            background: #15803d;
+            box-shadow: 0 4px 10px rgba(22, 163, 74, 0.25);
         }
 
         .action-btn.reject {
-            background: var(--danger-bg);
-            color: var(--danger);
+            background: #dc2626;
+            color: white;
+        }
+        .action-btn.reject:hover {
+            background: #b91c1c;
+            box-shadow: 0 4px 10px rgba(220, 38, 38, 0.25);
         }
 
-        .action-btn:focus-visible,
-        .nav-links a:focus-visible {
+        .action-btn:focus-visible {
             outline: 3px solid rgba(220, 38, 38, 0.2);
             outline-offset: 2px;
         }
@@ -193,9 +189,7 @@
             color: var(--text-dark);
         }
 
-        .empty-state p {
-            margin: 0;
-        }
+        .empty-state p { margin: 0; }
 
         @media (max-width: 700px) {
             .card { overflow-x: auto; }
@@ -204,6 +198,8 @@
     </style>
 </head>
 <body>
+    {% include "blood/navbar.html" %}
+
     <div class="container">
         <header class="header-panel">
             <div>
@@ -211,11 +207,6 @@
                 <p>Review and approve new blood donations submitted by donors.</p>
             </div>
         </header>
-
-        <nav class="nav-links" aria-label="Staff navigation">
-            <a href="{% url 'blood_availability' %}">Blood Availability</a>
-            <a href="{% url 'login' %}">Staff Login</a>
-        </nav>
 
         <main class="card">
             {% if messages %}
@@ -230,19 +221,21 @@
                         <tr>
                             <th>Donor</th>
                             <th>Blood Group</th>
-                            <th>Date</th>
+                            <th>Donation Date</th>
+                            <th>Expiry Date</th>
                             <th>Units</th>
                             <th>Status</th>
-                            <th>Review</th>
+                            <th>Review Action</th>
                         </tr>
                     </thead>
                     <tbody>
                         {% for donation in donations %}
                             <tr>
-                                <td>{{ donation.donor.username }}</td>
-                                <td>{{ donation.blood_group }}</td>
+                                <td><strong>{{ donation.donor.username }}</strong></td>
+                                <td><span class="badge-blood">{{ donation.blood_group }}</span></td>
                                 <td>{{ donation.donation_date }}</td>
-                                <td>{{ donation.units }}</td>
+                                <td>{{ donation.expiry_date|default:"-" }}</td>
+                                <td><strong>{{ donation.units }}</strong> unit{{ donation.units|pluralize }}</td>
                                 <td>
                                     <span class="status-pill status-{{ donation.status }}">{{ donation.status }}</span>
                                 </td>
@@ -255,7 +248,7 @@
                                         </form>
                                     {% else %}
                                         <span style="color: var(--text-muted); font-size: 0.85rem;">
-                                            Reviewed{% if donation.reviewed_by %} by {{ donation.reviewed_by.username }}{% endif %}
+                                            Reviewed{% if donation.reviewed_by %} by <strong>{{ donation.reviewed_by.username }}</strong>{% endif %}
                                         </span>
                                     {% endif %}
                                 </td>

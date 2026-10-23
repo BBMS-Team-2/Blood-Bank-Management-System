@@ -30,12 +30,14 @@
             background: linear-gradient(135deg, #eff6ff 0%, #f8fafc 50%, #fef2f2 100%);
             color: var(--text-dark);
             min-height: 100vh;
-            padding: 40px 20px;
+            margin: 0;
+    padding: 0;
         }
 
         .container {
             max-width: 760px;
             margin: 0 auto;
+    padding: 30px 20px 50px 20px;
         }
 
         .header-panel {
@@ -203,6 +205,7 @@
     </style>
 </head>
 <body>
+    {% include "blood/navbar.html" %}
     <div class="container">
         <header class="header-panel">
             <div class="avatar-circle">{{ user.username|slice:":1"|upper }}</div>

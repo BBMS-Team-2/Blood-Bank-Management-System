@@ -97,19 +97,22 @@ def review_donation(request, donation_id):
 def view_blood_availability(request):
     """
     BB-F-011: View Blood Availability
-    Displays current available blood stock by blood group.
+    BB-F-018: Blood Expiry Tracking (TC-INV-05)
+    Displays current available blood stock by blood group along with recorded expiry information.
     Ensures all 8 standard blood groups are displayed, reflecting inventory records.
     This presentation is strictly read-only for users.
     """
-    inventory_map = {
-        item.blood_group: item.units
+    inventory_records = {
+        item.blood_group: item
         for item in BloodInventory.objects.all()
     }
 
     blood_groups_data = []
     total_units = 0
     for group, _ in Donation.BLOOD_GROUPS:
-        units = inventory_map.get(group, 0)
+        item = inventory_records.get(group)
+        units = item.units if item else 0
+        expiry_date = item.nearest_expiry if item else None
         total_units += units
         if units == 0:
             status = 'Out of Stock'
@@ -124,6 +127,7 @@ def view_blood_availability(request):
         blood_groups_data.append({
             'blood_group': group,
             'units': units,
+            'expiry_date': expiry_date,
             'status': status,
             'status_class': status_class,
         })

@@ -1,3 +1,5 @@
+from datetime import timedelta
+
 from django.db import models
 from django.contrib.auth.models import User
 
@@ -30,6 +32,11 @@ class Donation(models.Model):
         choices=BLOOD_GROUPS
     )
     donation_date = models.DateField()
+    expiry_date = models.DateField(
+        null=True,
+        blank=True,
+        help_text='Recorded expiration date of donated blood units (defaults to donation date + 42 days)'
+    )
     units = models.PositiveSmallIntegerField(default=1)
     notes = models.TextField(blank=True)
     status = models.CharField(
@@ -46,6 +53,11 @@ class Donation(models.Model):
     )
     reviewed_at = models.DateTimeField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
+
+    def save(self, *args, **kwargs):
+        if not self.expiry_date and self.donation_date:
+            self.expiry_date = self.donation_date + timedelta(days=42)
+        super().save(*args, **kwargs)
 
     def __str__(self):
         return f"{self.donor.username} - {self.blood_group} - {self.status}"
@@ -85,10 +97,27 @@ class BloodInventory(models.Model):
         unique=True
     )
     units = models.PositiveIntegerField(default=0)
+    expiry_date = models.DateField(
+        null=True,
+        blank=True,
+        help_text='Earliest recorded expiry date for available units'
+    )
     updated_at = models.DateTimeField(auto_now=True)
 
+    @property
+    def nearest_expiry(self):
+        if self.expiry_date:
+            return self.expiry_date
+        earliest = Donation.objects.filter(
+            blood_group=self.blood_group,
+            status='Approved',
+            expiry_date__isnull=False
+        ).order_by('expiry_date').first()
+        return earliest.expiry_date if earliest else None
+
     def __str__(self):
-        return f"{self.blood_group}: {self.units} units"
+        expiry_info = f" (expires {self.expiry_date})" if self.expiry_date else ""
+        return f"{self.blood_group}: {self.units} units{expiry_info}"
 
 
 class PatientProfile(models.Model):

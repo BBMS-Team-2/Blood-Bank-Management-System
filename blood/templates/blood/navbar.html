@@ -1,0 +1,203 @@
+<style>
+    .bbms-navbar {
+        width: 100%;
+        margin: 0;
+        padding: 0;
+        background: #ffffff;
+        border-bottom: 1px solid #e2e8f0;
+        box-shadow: 0 2px 10px rgba(15, 23, 42, 0.05);
+        position: sticky;
+        top: 0;
+        left: 0;
+        z-index: 1000;
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    }
+
+    .bbms-nav-container {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 12px 24px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 16px;
+        flex-wrap: wrap;
+    }
+
+    .bbms-nav-brand {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        text-decoration: none;
+        color: #0f172a;
+        font-weight: 800;
+        font-size: 1.25rem;
+        letter-spacing: -0.3px;
+    }
+
+    .bbms-brand-icon {
+        font-size: 1.4rem;
+        line-height: 1;
+    }
+
+    .bbms-nav-menu {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        flex-wrap: wrap;
+    }
+
+    .bbms-nav-link {
+        color: #334155;
+        text-decoration: none;
+        font-size: 0.9rem;
+        font-weight: 600;
+        padding: 7px 12px;
+        border-radius: 8px;
+        transition: all 0.15s ease;
+    }
+
+    .bbms-nav-link:hover {
+        background: #f1f5f9;
+        color: #dc2626;
+    }
+
+    .bbms-nav-separator {
+        width: 1px;
+        height: 20px;
+        background: #cbd5e1;
+        margin: 0 4px;
+    }
+
+    .bbms-nav-auth {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+    }
+
+    .bbms-user-greeting {
+        font-size: 0.88rem;
+        font-weight: 600;
+        color: #475569;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+    }
+
+    .bbms-user-dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background: #16a34a;
+    }
+
+    .bbms-badge-staff {
+        background: #fef3c7;
+        color: #92400e;
+        border: 1px solid #fde68a;
+        padding: 2px 7px;
+        border-radius: 6px;
+        font-size: 0.72rem;
+        font-weight: 700;
+        text-transform: uppercase;
+    }
+
+    .bbms-btn {
+        text-decoration: none;
+        padding: 8px 16px;
+        border-radius: 8px;
+        font-size: 0.88rem;
+        font-weight: 700;
+        transition: all 0.15s ease;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .bbms-btn-outline {
+        border: 1.5px solid #cbd5e1;
+        background: #ffffff;
+        color: #334155;
+    }
+
+    .bbms-btn-outline:hover {
+        border-color: #dc2626;
+        color: #dc2626;
+        background: #fff5f5;
+    }
+
+    .bbms-btn-primary {
+        background: #dc2626;
+        color: #ffffff;
+        border: 1.5px solid #dc2626;
+    }
+
+    .bbms-btn-primary:hover {
+        background: #b91c1c;
+        border-color: #b91c1c;
+    }
+
+    @media (max-width: 900px) {
+        .bbms-nav-container {
+            padding: 10px 16px;
+        }
+        .bbms-nav-menu {
+            gap: 4px;
+        }
+        .bbms-nav-link {
+            padding: 6px 9px;
+            font-size: 0.84rem;
+        }
+    }
+</style>
+
+<header class="bbms-navbar">
+    <div class="bbms-nav-container">
+        <a href="{% url 'blood_availability' %}" class="bbms-nav-brand">
+            <span class="bbms-brand-icon">🩸</span>
+            <span>BloodBank</span>
+        </a>
+
+        <nav class="bbms-nav-menu">
+            <a href="{% url 'blood_availability' %}" class="bbms-nav-link">Availability</a>
+
+            {% if user.is_authenticated %}
+                <span class="bbms-nav-separator"></span>
+
+                <!-- Donor operations -->
+                <a href="{% url 'submit_donation' %}" class="bbms-nav-link">Donate Blood</a>
+                <a href="{% url 'donation_history' %}" class="bbms-nav-link">Donation History</a>
+                <a href="{% url 'donor_profile' %}" class="bbms-nav-link">Donor Profile</a>
+
+                <span class="bbms-nav-separator"></span>
+
+                <!-- Patient operations -->
+                <a href="{% url 'submit_blood_request' %}" class="bbms-nav-link">Request Blood</a>
+                <a href="{% url 'blood_request_history' %}" class="bbms-nav-link">Request History</a>
+                <a href="{% url 'patient_profile' %}" class="bbms-nav-link">Patient Profile</a>
+
+                {% if user.is_staff %}
+                    <span class="bbms-nav-separator"></span>
+                    <a href="{% url 'manage_donations' %}" class="bbms-nav-link">Review Donations</a>
+                    <a href="/admin/" class="bbms-nav-link" target="_blank">Admin</a>
+                {% endif %}
+            {% endif %}
+        </nav>
+
+        <div class="bbms-nav-auth">
+            {% if user.is_authenticated %}
+                <span class="bbms-user-greeting">
+                    <span class="bbms-user-dot"></span>
+                    {{ user.username }}
+                    {% if user.is_staff %}
+                        <span class="bbms-badge-staff">Staff</span>
+                    {% endif %}
+                </span>
+                <a href="{% url 'logout' %}" class="bbms-btn bbms-btn-outline">Logout</a>
+            {% else %}
+                <a href="{% url 'login' %}" class="bbms-btn bbms-btn-outline">Log in</a>
+                <a href="{% url 'register' %}" class="bbms-btn bbms-btn-primary">Register</a>
+            {% endif %}
+        </div>
+    </div>
+</header>

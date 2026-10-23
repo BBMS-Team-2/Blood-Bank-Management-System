@@ -33,12 +33,14 @@
             background: linear-gradient(135deg, #fef2f2 0%, #f8fafc 50%, #eff6ff 100%);
             color: var(--text-dark);
             min-height: 100vh;
-            padding: 40px 20px;
+            margin: 0;
+    padding: 0;
         }
 
         .container {
             max-width: 1000px;
             margin: 0 auto;
+    padding: 30px 20px 50px 20px;
         }
 
         .header-panel {
@@ -220,6 +222,7 @@
     </style>
 </head>
 <body>
+    {% include "blood/navbar.html" %}
     <div class="container">
         <header class="header-panel">
             <div class="header-title">
@@ -245,6 +248,11 @@
                         <div class="units-count">{{ item.units }}</div>
                         <div class="units-label">Units Available</div>
                         <span class="status-badge status-{{ item.status_class }}">{{ item.status }}</span>
+                        {% if item.expiry_date %}
+                            <div class="expiry-info" style="margin-top: 10px; font-size: 0.8rem; color: var(--text-muted);">
+                                Earliest Expiry: <strong>{{ item.expiry_date|date:"Y-m-d" }}</strong>
+                            </div>
+                        {% endif %}
                     </div>
                 {% endfor %}
             </div>

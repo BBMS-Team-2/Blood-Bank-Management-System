@@ -33,11 +33,16 @@ def review_donation(donation_id, reviewer, action):
     if action == 'approve':
         inventory, _ = BloodInventory.objects.get_or_create(
             blood_group=donation.blood_group,
-            defaults={'units': 0}
+            defaults={
+                'units': 0,
+                'expiry_date': donation.expiry_date,
+            }
         )
 
-        BloodInventory.objects.filter(pk=inventory.pk).update(
-            units=F('units') + donation.units
-        )
+        update_kwargs = {'units': F('units') + donation.units}
+        if donation.expiry_date and (not inventory.expiry_date or donation.expiry_date < inventory.expiry_date):
+            update_kwargs['expiry_date'] = donation.expiry_date
+
+        BloodInventory.objects.filter(pk=inventory.pk).update(**update_kwargs)
 
     return True

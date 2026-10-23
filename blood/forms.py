@@ -12,6 +12,8 @@ class DonationForm(forms.ModelForm):
         super().__init__(*args, **kwargs)
         self.fields['blood_group'].label = 'Blood Group'
         self.fields['donation_date'].label = 'Donation Date'
+        self.fields['expiry_date'].label = 'Expiry Date'
+        self.fields['expiry_date'].required = False
         self.fields['units'].label = 'Units Donated'
         self.fields['notes'].label = 'Notes'
 
@@ -28,6 +30,10 @@ class DonationForm(forms.ModelForm):
             'type': 'date',
             'placeholder': 'Select donation date'
         })
+        self.fields['expiry_date'].widget.attrs.update({
+            'type': 'date',
+            'placeholder': 'Optional: auto-calculated if left blank'
+        })
 
     def clean_units(self):
         units = self.cleaned_data.get('units')
@@ -43,11 +49,23 @@ class DonationForm(forms.ModelForm):
             )
         return donation_date
 
+    def clean_expiry_date(self):
+        expiry_date = self.cleaned_data.get('expiry_date')
+        donation_date = self.cleaned_data.get('donation_date')
+        if expiry_date and donation_date and expiry_date < donation_date:
+            raise forms.ValidationError(
+                'Expiry date cannot be earlier than donation date.'
+            )
+        return expiry_date
+
     class Meta:
         model = Donation
-        fields = ['blood_group', 'donation_date', 'units', 'notes']
+        fields = ['blood_group', 'donation_date', 'expiry_date', 'units', 'notes']
         widgets = {
             'donation_date': forms.DateInput(
+                attrs={'type': 'date'}
+            ),
+            'expiry_date': forms.DateInput(
                 attrs={'type': 'date'}
             ),
             'notes': forms.Textarea(
