@@ -1,6 +1,6 @@
 from django.contrib import admin, messages
 
-from .models import Donation, BloodInventory, BloodRequest, PatientProfile
+from .models import Donation, BloodInventory, BloodRequest, PatientProfile, DonorProfile
 from .services import review_donation
 
 
@@ -64,5 +64,11 @@ class BloodRequestAdmin(admin.ModelAdmin):
 
 @admin.register(PatientProfile)
 class PatientProfileAdmin(admin.ModelAdmin):
+    list_display = ('user', 'blood_group', 'age', 'contact_phone', 'updated_at')
+    search_fields = ('user__username', 'contact_phone')
+
+
+@admin.register(DonorProfile)
+class DonorProfileAdmin(admin.ModelAdmin):
     list_display = ('user', 'blood_group', 'age', 'contact_phone', 'updated_at')
     search_fields = ('user__username', 'contact_phone')

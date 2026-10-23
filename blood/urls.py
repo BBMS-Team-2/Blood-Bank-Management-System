@@ -43,6 +43,11 @@ urlpatterns = [
         name='patient_profile'
     ),
     path(
+        'donor/profile/',
+        views.donor_profile,
+        name='donor_profile'
+    ),
+    path(
         'login/',
         views.login_view,
         name='login'
