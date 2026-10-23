@@ -242,3 +242,70 @@ class DonationHistoryTests(TestCase):
         self.assertIn("/accounts/login", response.url)
 
 
+class BloodRequestHistoryTests(TestCase):
+    """
+    BB-F-015: Blood Request History (TC-REQ-03, BB-SR-003)
+    """
+    def setUp(self):
+        self.patient1 = User.objects.create_user(
+            username="patient_one",
+            password="password123"
+        )
+        self.patient2 = User.objects.create_user(
+            username="patient_two",
+            password="password123"
+        )
+
+        self.req1 = BloodRequest.objects.create(
+            patient=self.patient1,
+            blood_group="AB+",
+            units=2,
+            needed_by_date=date.today() + timedelta(days=2),
+            notes="Patient 1 urgent surgery",
+            status="Approved"
+        )
+        self.req2 = BloodRequest.objects.create(
+            patient=self.patient2,
+            blood_group="O-",
+            units=3,
+            needed_by_date=date.today() + timedelta(days=5),
+            notes="Patient 2 private request",
+            status="Pending"
+        )
+
+    def test_patient_can_view_own_request_history(self):
+        self.client.force_login(self.patient1)
+        response = self.client.get(reverse("blood_request_history"))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "My Blood Requests")
+        self.assertContains(response, "Patient 1 urgent surgery")
+        self.assertContains(response, "Approved")
+        self.assertEqual(len(response.context["blood_requests"]), 1)
+        self.assertEqual(response.context["blood_requests"][0], self.req1)
+
+    def test_patient_cannot_view_other_patient_request_history(self):
+        # Patient 1 must not see Patient 2's request details
+        self.client.force_login(self.patient1)
+        response = self.client.get(reverse("blood_request_history"))
+        self.assertEqual(response.status_code, 200)
+        self.assertNotContains(response, "Patient 2 private request")
+        self.assertNotContains(response, f"request-row-{self.req2.id}")
+
+    def test_empty_request_history_shows_empty_state(self):
+        new_patient = User.objects.create_user(
+            username="new_patient",
+            password="password123"
+        )
+        self.client.force_login(new_patient)
+        response = self.client.get(reverse("blood_request_history"))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "No Requests Submitted")
+        self.assertEqual(len(response.context["blood_requests"]), 0)
+
+    def test_unauthenticated_access_redirects_to_login(self):
+        response = self.client.get(reverse("blood_request_history"))
+        self.assertEqual(response.status_code, 302)
+        self.assertIn("/accounts/login", response.url)
+
+
+

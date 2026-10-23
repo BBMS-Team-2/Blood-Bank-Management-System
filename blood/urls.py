@@ -32,4 +32,9 @@ urlpatterns = [
         views.donation_history,
         name='donation_history'
     ),
+    path(
+        'requests/history/',
+        views.blood_request_history,
+        name='blood_request_history'
+    ),
 ]
