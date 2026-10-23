@@ -4,7 +4,7 @@ from django.test import TestCase
 from django.contrib.auth.models import User
 from django.urls import reverse
 
-from .models import Donation, BloodRequest, BloodInventory
+from .models import Donation, BloodRequest, BloodInventory, PatientProfile
 
 
 class DonationSubmissionTests(TestCase):
@@ -306,6 +306,66 @@ class BloodRequestHistoryTests(TestCase):
         response = self.client.get(reverse("blood_request_history"))
         self.assertEqual(response.status_code, 302)
         self.assertIn("/accounts/login", response.url)
+
+
+class PatientProfileManagementTests(TestCase):
+    """
+    BB-F-008: Patient Profile Management (TC-PAT-01)
+    """
+    def setUp(self):
+        self.patient = User.objects.create_user(
+            username="profile_patient",
+            password="securepassword123"
+        )
+
+    def test_patient_can_view_profile_form(self):
+        self.client.force_login(self.patient)
+        response = self.client.get(reverse("patient_profile"))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "profile_patient's Profile")
+        self.assertIn("form", response.context)
+        self.assertTrue(PatientProfile.objects.filter(user=self.patient).exists())
+
+    def test_patient_can_update_permitted_details(self):
+        self.client.force_login(self.patient)
+        response = self.client.post(
+            reverse("patient_profile"),
+            {
+                "blood_group": "AB-",
+                "age": 34,
+                "disease": "Chronic Anemia",
+                "contact_phone": "+91-9876543210",
+                "address": "123 Medical Avenue, Bengaluru",
+            }
+        )
+        self.assertEqual(response.status_code, 302)
+        profile = PatientProfile.objects.get(user=self.patient)
+        self.assertEqual(profile.blood_group, "AB-")
+        self.assertEqual(profile.age, 34)
+        self.assertEqual(profile.disease, "Chronic Anemia")
+        self.assertEqual(profile.contact_phone, "+91-9876543210")
+        self.assertEqual(profile.address, "123 Medical Avenue, Bengaluru")
+
+    def test_invalid_profile_data_is_rejected(self):
+        self.client.force_login(self.patient)
+        response = self.client.post(
+            reverse("patient_profile"),
+            {
+                "blood_group": "INVALID",
+                "age": 200,  # Invalid age
+                "contact_phone": "123",
+            }
+        )
+        self.assertEqual(response.status_code, 200)
+        profile = PatientProfile.objects.get(user=self.patient)
+        self.assertNotEqual(profile.age, 200)
+        self.assertNotEqual(profile.blood_group, "INVALID")
+
+    def test_unauthenticated_user_cannot_access_profile(self):
+        response = self.client.get(reverse("patient_profile"))
+        self.assertEqual(response.status_code, 302)
+        self.assertIn("/accounts/login", response.url)
+
 
 
 
