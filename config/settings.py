@@ -130,7 +130,7 @@ MAILERS = {
 }
 
 # Security and Session Management (BB-NF-003, BB-SR-001, BB-SR-002)
-LOGIN_URL = 'login'
+LOGIN_URL = '/accounts/login/'
 LOGIN_REDIRECT_URL = 'blood_availability'
 LOGOUT_REDIRECT_URL = 'login'
 
