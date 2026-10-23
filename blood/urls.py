@@ -27,4 +27,9 @@ urlpatterns = [
         views.view_blood_availability,
         name='blood_availability'
     ),
+    path(
+        'donations/history/',
+        views.donation_history,
+        name='donation_history'
+    ),
 ]

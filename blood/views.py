@@ -170,3 +170,22 @@ def view_blood_availability(request):
         }
     )
 
+
+@login_required
+def donation_history(request):
+    """
+    BB-F-007: Donation History (BB-SR-003)
+    Allows authenticated donors to view their past donation records and review status.
+    Ensures complete isolation so donors can only view their own records.
+    """
+    donations = Donation.objects.filter(
+        donor=request.user
+    ).select_related('reviewed_by').order_by('-donation_date', '-created_at')
+
+    return render(
+        request,
+        'blood/donation_history.html',
+        {'donations': donations}
+    )
+
+
