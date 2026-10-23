@@ -125,3 +125,48 @@ def review_donation(request, donation_id):
         f'Donation #{donation_id} {new_status.lower()}.'
     )
     return redirect('manage_donations')
+
+
+def view_blood_availability(request):
+    """
+    BB-F-011: View Blood Availability
+    Displays current available blood stock by blood group.
+    Ensures all 8 standard blood groups are displayed, reflecting inventory records.
+    This presentation is strictly read-only for users.
+    """
+    inventory_map = {
+        item.blood_group: item.units
+        for item in BloodInventory.objects.all()
+    }
+
+    blood_groups_data = []
+    total_units = 0
+    for group, _ in Donation.BLOOD_GROUPS:
+        units = inventory_map.get(group, 0)
+        total_units += units
+        if units == 0:
+            status = 'Out of Stock'
+            status_class = 'danger'
+        elif units < 5:
+            status = 'Low Stock'
+            status_class = 'warning'
+        else:
+            status = 'Available'
+            status_class = 'success'
+
+        blood_groups_data.append({
+            'blood_group': group,
+            'units': units,
+            'status': status,
+            'status_class': status_class,
+        })
+
+    return render(
+        request,
+        'blood/blood_availability.html',
+        {
+            'blood_groups': blood_groups_data,
+            'total_units': total_units,
+        }
+    )
+

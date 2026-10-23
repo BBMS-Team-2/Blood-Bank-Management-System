@@ -4,7 +4,7 @@ from django.test import TestCase
 from django.contrib.auth.models import User
 from django.urls import reverse
 
-from .models import Donation, BloodRequest
+from .models import Donation, BloodRequest, BloodInventory
 
 
 class DonationSubmissionTests(TestCase):
@@ -126,3 +126,52 @@ class BloodRequestSubmissionTests(TestCase):
 
         self.assertEqual(response.status_code, 302)
         self.assertIn("/accounts/login", response.url)
+
+
+class BloodAvailabilityTests(TestCase):
+    """
+    BB-F-011: View Blood Availability (TC-INV-01)
+    """
+    def test_blood_availability_displays_all_blood_groups_with_defaults(self):
+        response = self.client.get(reverse("blood_availability"))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Blood Availability")
+        
+        # Verify context contains all 8 standard blood groups
+        groups_in_context = [item["blood_group"] for item in response.context["blood_groups"]]
+        for group, _ in Donation.BLOOD_GROUPS:
+            self.assertIn(group, groups_in_context)
+            self.assertContains(response, f"card-{group}")
+        
+        self.assertEqual(response.context["total_units"], 0)
+
+    def test_blood_availability_reflects_actual_inventory_records(self):
+        BloodInventory.objects.create(blood_group="A+", units=15)
+        BloodInventory.objects.create(blood_group="O-", units=3)
+        BloodInventory.objects.create(blood_group="B+", units=0)
+
+        response = self.client.get(reverse("blood_availability"))
+        self.assertEqual(response.status_code, 200)
+
+        data = {item["blood_group"]: item for item in response.context["blood_groups"]}
+        self.assertEqual(data["A+"]["units"], 15)
+        self.assertEqual(data["A+"]["status"], "Available")
+        self.assertEqual(data["O-"]["units"], 3)
+        self.assertEqual(data["O-"]["status"], "Low Stock")
+        self.assertEqual(data["B+"]["units"], 0)
+        self.assertEqual(data["B+"]["status"], "Out of Stock")
+
+        self.assertEqual(response.context["total_units"], 18)
+        self.assertContains(response, "18")
+
+    def test_view_is_read_only_and_does_not_mutate_inventory(self):
+        BloodInventory.objects.create(blood_group="AB+", units=7)
+        # Attempting POST does not mutate inventory records
+        response = self.client.post(
+            reverse("blood_availability"),
+            {"blood_group": "AB+", "units": 999}
+        )
+        self.assertEqual(response.status_code, 200)
+        inv = BloodInventory.objects.get(blood_group="AB+")
+        self.assertEqual(inv.units, 7)
+
