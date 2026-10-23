@@ -3,14 +3,12 @@ from django.contrib.admin.views.decorators import staff_member_required
 from django.contrib.auth import authenticate, login as auth_login, logout as auth_logout
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.forms import AuthenticationForm
-from django.db import transaction
-from django.db.models import F
-from django.shortcuts import render, redirect, get_object_or_404
-from django.utils import timezone
+from django.shortcuts import render, redirect
 from django.views.decorators.http import require_POST
 
 from .forms import DonationForm, BloodRequestForm, PatientProfileForm, UserRegisterForm
 from .models import Donation, BloodInventory, BloodRequest, PatientProfile
+from .services import review_donation as process_donation_review
 
 
 @login_required
@@ -79,53 +77,20 @@ def review_donation(request, donation_id):
         messages.error(request, 'Invalid review action.')
         return redirect('manage_donations')
 
-    with transaction.atomic():
-        donation = get_object_or_404(
-            Donation.objects.select_for_update(),
-            pk=donation_id
-        )
-
-        if donation.status != 'Pending':
-            messages.warning(
-                request,
-                'This donation has already been reviewed.'
-            )
-            return redirect('manage_donations')
-
-        if action == 'approve':
-            # Create the blood-group stock row if it doesn't exist.
-            inventory, _ = BloodInventory.objects.get_or_create(
-                blood_group=donation.blood_group
-            )
-
-            # Atomic increment; avoids overwriting concurrent stock updates.
-            BloodInventory.objects.filter(pk=inventory.pk).update(
-                units=F('units') + donation.units
-            )
-            new_status = 'Approved'
-        else:
-            new_status = 'Rejected'
-
-        # Claim the pending donation exactly once.
-        updated = Donation.objects.filter(
-            pk=donation.pk,
-            status='Pending'
-        ).update(
-            status=new_status,
-            reviewed_by=request.user,
-            reviewed_at=timezone.now()
-        )
-
-        if updated != 1:
-            # Raising rolls back the stock increment as well.
-            raise RuntimeError(
-                'Donation review could not be completed safely.'
-            )
-
-    messages.success(
-        request,
-        f'Donation #{donation_id} {new_status.lower()}.'
+    completed = process_donation_review(
+        donation_id,
+        request.user,
+        action,
     )
+
+    if completed:
+        messages.success(request, f'Donation {action}d successfully.')
+    else:
+        messages.warning(
+            request,
+            'Donation not found or already reviewed.'
+        )
+
     return redirect('manage_donations')
 
 
@@ -294,8 +259,3 @@ def logout_view(request):
     auth_logout(request)
     messages.info(request, 'You have been logged out.')
     return redirect('login')
-
-
-
-
-
