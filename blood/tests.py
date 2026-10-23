@@ -175,3 +175,70 @@ class BloodAvailabilityTests(TestCase):
         inv = BloodInventory.objects.get(blood_group="AB+")
         self.assertEqual(inv.units, 7)
 
+
+class DonationHistoryTests(TestCase):
+    """
+    BB-F-007: Donation History (TC-DON-04, BB-SR-003)
+    """
+    def setUp(self):
+        self.donor1 = User.objects.create_user(
+            username="donor_one",
+            password="password123"
+        )
+        self.donor2 = User.objects.create_user(
+            username="donor_two",
+            password="password123"
+        )
+
+        self.d1_donation = Donation.objects.create(
+            donor=self.donor1,
+            blood_group="A+",
+            donation_date=date.today(),
+            units=2,
+            notes="Donor 1 donation",
+            status="Approved"
+        )
+        self.d2_donation = Donation.objects.create(
+            donor=self.donor2,
+            blood_group="B-",
+            donation_date=date.today(),
+            units=1,
+            notes="Donor 2 private donation",
+            status="Pending"
+        )
+
+    def test_donor_can_view_own_donation_history(self):
+        self.client.force_login(self.donor1)
+        response = self.client.get(reverse("donation_history"))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "My Donation History")
+        self.assertContains(response, "Donor 1 donation")
+        self.assertContains(response, "Approved")
+        self.assertEqual(len(response.context["donations"]), 1)
+        self.assertEqual(response.context["donations"][0], self.d1_donation)
+
+    def test_donor_cannot_view_other_donor_history(self):
+        # Authenticated as donor1, donor2's private donation must NOT appear
+        self.client.force_login(self.donor1)
+        response = self.client.get(reverse("donation_history"))
+        self.assertEqual(response.status_code, 200)
+        self.assertNotContains(response, "Donor 2 private donation")
+        self.assertNotContains(response, f"donation-row-{self.d2_donation.id}")
+
+    def test_empty_donation_history_shows_empty_state(self):
+        new_donor = User.objects.create_user(
+            username="new_donor",
+            password="password123"
+        )
+        self.client.force_login(new_donor)
+        response = self.client.get(reverse("donation_history"))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "No Donations Recorded")
+        self.assertEqual(len(response.context["donations"]), 0)
+
+    def test_unauthenticated_access_redirects_to_login(self):
+        response = self.client.get(reverse("donation_history"))
+        self.assertEqual(response.status_code, 302)
+        self.assertIn("/accounts/login", response.url)
+
+
