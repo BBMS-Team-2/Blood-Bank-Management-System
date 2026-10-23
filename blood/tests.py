@@ -1,6 +1,7 @@
 from datetime import date, timedelta
 
 from django.test import TestCase
+from django.conf import settings
 from django.contrib.auth.models import User
 from django.urls import reverse
 
@@ -365,6 +366,88 @@ class PatientProfileManagementTests(TestCase):
         response = self.client.get(reverse("patient_profile"))
         self.assertEqual(response.status_code, 302)
         self.assertIn("/accounts/login", response.url)
+
+
+class SecurityAndAuthenticationTests(TestCase):
+    """
+    BB-NF-003: Security & Password Protection (TC-SEC-01, TC-AUTH-01, BB-SR-001)
+    """
+    def test_password_is_cryptographically_hashed_and_not_plaintext(self):
+        raw_password = "SuperSecretPassword123!"
+        response = self.client.post(
+            reverse("register"),
+            {
+                "username": "security_user",
+                "email": "sec@example.com",
+                "password1": raw_password,
+                "password2": raw_password,
+            }
+        )
+        self.assertEqual(response.status_code, 302)
+
+        user = User.objects.get(username="security_user")
+        # Ensure raw password is NEVER stored in database
+        self.assertNotEqual(user.password, raw_password)
+        # Ensure standard Django cryptographic hash algorithm prefix (PBKDF2/argon2)
+        self.assertTrue(
+            user.password.startswith("pbkdf2_") or user.password.startswith("argon2"),
+            "Password must be stored using a cryptographic one-way hash algorithm."
+        )
+        self.assertTrue(user.check_password(raw_password))
+
+    def test_valid_credentials_authenticate_user_and_establish_session(self):
+        User.objects.create_user(
+            username="valid_user",
+            password="CorrectPassword123"
+        )
+        response = self.client.post(
+            reverse("login"),
+            {
+                "username": "valid_user",
+                "password": "CorrectPassword123",
+            }
+        )
+        self.assertEqual(response.status_code, 302)
+        self.assertIn("_auth_user_id", self.client.session)
+
+    def test_invalid_credentials_are_rejected(self):
+        User.objects.create_user(
+            username="auth_user",
+            password="CorrectPassword123"
+        )
+        response = self.client.post(
+            reverse("login"),
+            {
+                "username": "auth_user",
+                "password": "WrongPassword999",
+            }
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertNotIn("_auth_user_id", self.client.session)
+        self.assertContains(response, "Invalid username or password")
+
+    def test_logout_invalidates_session(self):
+        user = User.objects.create_user(
+            username="logout_user",
+            password="Password123"
+        )
+        self.client.force_login(user)
+        self.assertIn("_auth_user_id", self.client.session)
+
+        response = self.client.get(reverse("logout"))
+        self.assertEqual(response.status_code, 302)
+        self.assertNotIn("_auth_user_id", self.client.session)
+
+    def test_session_cookie_security_settings(self):
+        self.assertTrue(
+            settings.SESSION_COOKIE_HTTPONLY,
+            "SESSION_COOKIE_HTTPONLY must be True to protect against cookie theft."
+        )
+        self.assertTrue(
+            settings.SESSION_EXPIRE_AT_BROWSER_CLOSE,
+            "Session should expire at browser close for security."
+        )
+
 
 
 
