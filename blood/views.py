@@ -1,13 +1,15 @@
 from django.contrib import messages
 from django.contrib.admin.views.decorators import staff_member_required
+from django.contrib.auth import authenticate, login as auth_login, logout as auth_logout
 from django.contrib.auth.decorators import login_required
+from django.contrib.auth.forms import AuthenticationForm
 from django.db import transaction
 from django.db.models import F
 from django.shortcuts import render, redirect, get_object_or_404
 from django.utils import timezone
 from django.views.decorators.http import require_POST
 
-from .forms import DonationForm, BloodRequestForm, PatientProfileForm
+from .forms import DonationForm, BloodRequestForm, PatientProfileForm, UserRegisterForm
 from .models import Donation, BloodInventory, BloodRequest, PatientProfile
 
 
@@ -232,6 +234,67 @@ def patient_profile(request):
             'profile': profile,
         }
     )
+
+
+def register_view(request):
+    """
+    BB-NF-003, BB-F-001: User Registration
+    Creates account using secure password hashing and input validation.
+    """
+    if request.user.is_authenticated:
+        return redirect('blood_availability')
+
+    if request.method == 'POST':
+        form = UserRegisterForm(request.POST)
+        if form.is_valid():
+            user = form.save()
+            messages.success(request, f'Account created for {user.username}. You may now log in.')
+            return redirect('login')
+    else:
+        form = UserRegisterForm()
+
+    return render(request, 'blood/register.html', {'form': form})
+
+
+def login_view(request):
+    """
+    BB-NF-003, BB-F-002: User Login
+    Authenticates registered users securely; rejects invalid credentials without leaking details.
+    """
+    if request.user.is_authenticated:
+        return redirect('blood_availability')
+
+    next_url = request.GET.get('next') or request.POST.get('next') or 'blood_availability'
+
+    if request.method == 'POST':
+        form = AuthenticationForm(request, data=request.POST)
+        if form.is_valid():
+            user = form.get_user()
+            auth_login(request, user)
+            messages.success(request, f'Welcome back, {user.username}!')
+            return redirect(next_url)
+    else:
+        form = AuthenticationForm(request)
+
+    return render(
+        request,
+        'blood/login.html',
+        {
+            'form': form,
+            'next': next_url,
+        }
+    )
+
+
+def logout_view(request):
+    """
+    BB-NF-003: User Logout
+    Flushes authenticated session safely.
+    """
+    auth_logout(request)
+    messages.info(request, 'You have been logged out.')
+    return redirect('login')
+
 
 
 
