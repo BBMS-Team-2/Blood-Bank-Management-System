@@ -16,6 +16,7 @@ class DonationAdmin(admin.ModelAdmin):
         'status',
         'reviewed_by',
     )
+    list_select_related = ('donor', 'reviewed_by')
     list_filter = ('status', 'blood_group', 'donation_date', 'expiry_date')
     search_fields = ('donor__username', 'donor__email')
     readonly_fields = (
@@ -59,6 +60,7 @@ class BloodInventoryAdmin(admin.ModelAdmin):
 @admin.register(BloodRequest)
 class BloodRequestAdmin(admin.ModelAdmin):
     list_display = ('id', 'patient', 'blood_group', 'units', 'needed_by_date', 'status', 'created_at')
+    list_select_related = ('patient',)
     list_filter = ('status', 'blood_group')
     search_fields = ('patient__username',)
 
@@ -66,10 +68,12 @@ class BloodRequestAdmin(admin.ModelAdmin):
 @admin.register(PatientProfile)
 class PatientProfileAdmin(admin.ModelAdmin):
     list_display = ('user', 'blood_group', 'age', 'contact_phone', 'updated_at')
+    list_select_related = ('user',)
     search_fields = ('user__username', 'contact_phone')
 
 
 @admin.register(DonorProfile)
 class DonorProfileAdmin(admin.ModelAdmin):
     list_display = ('user', 'blood_group', 'age', 'contact_phone', 'updated_at')
+    list_select_related = ('user',)
     search_fields = ('user__username', 'contact_phone')

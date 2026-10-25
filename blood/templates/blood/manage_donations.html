@@ -256,6 +256,17 @@
                         {% endfor %}
                     </tbody>
                 </table>
+                {% if page_obj and page_obj.has_other_pages %}
+                    <div class="pagination" style="display: flex; justify-content: center; gap: 12px; margin-top: 24px; align-items: center; font-size: 0.9rem;">
+                        {% if page_obj.has_previous %}
+                            <a href="?page={{ page_obj.previous_page_number }}" style="padding: 8px 14px; border: 1px solid var(--border); border-radius: 8px; text-decoration: none; color: var(--text-dark); background: #ffffff;">&larr; Previous</a>
+                        {% endif %}
+                        <span style="color: var(--text-muted);">Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
+                        {% if page_obj.has_next %}
+                            <a href="?page={{ page_obj.next_page_number }}" style="padding: 8px 14px; border: 1px solid var(--border); border-radius: 8px; text-decoration: none; color: var(--text-dark); background: #ffffff;">Next &rarr;</a>
+                        {% endif %}
+                    </div>
+                {% endif %}
             {% else %}
                 <div class="empty-state">
                     <h3>No pending donations</h3>
