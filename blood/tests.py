@@ -1,3 +1,4 @@
+import time
 from datetime import date, timedelta
 from types import SimpleNamespace
 from unittest.mock import patch
@@ -779,3 +780,166 @@ class BloodExpiryTrackingTests(TestCase):
 
         data = {item["blood_group"]: item for item in response.context["blood_groups"]}
         self.assertEqual(data["O-"]["expiry_date"], expiry_date)
+
+
+class PerformanceRequirementsTests(TestCase):
+    """
+    BB-NF-001: Performance Requirements & TC-PERF-01 Test Suite
+    Verifies that:
+    1. Normal page requests and routine database operations respond within 3 seconds.
+    2. At least 95% of measured common requests complete within 3 seconds.
+    3. Common operations (login, blood availability, dashboards, history) execute without delays.
+    4. Database query counts are bounded and eliminate N+1 query bottlenecks.
+    5. Performance timing headers (X-Response-Time, Server-Timing) are present.
+    6. Performance settings (caching, connection persistence) are properly configured.
+    """
+
+    def setUp(self):
+        self.password = "StrongPass123!"
+        self.donor_user = User.objects.create_user(
+            username="perf_donor",
+            password=self.password
+        )
+        self.patient_user = User.objects.create_user(
+            username="perf_patient",
+            password=self.password
+        )
+        self.staff_user = User.objects.create_user(
+            username="perf_staff",
+            password=self.password,
+            is_staff=True
+        )
+
+        for bg, _ in Donation.BLOOD_GROUPS:
+            BloodInventory.objects.create(
+                blood_group=bg,
+                units=10,
+                expiry_date=date.today() + timedelta(days=30)
+            )
+
+        for i in range(15):
+            Donation.objects.create(
+                donor=self.donor_user,
+                blood_group="O+",
+                donation_date=date.today(),
+                units=1,
+                status="Pending"
+            )
+
+    def test_response_timing_headers_injected_by_middleware(self):
+        response = self.client.get(reverse("blood_availability"))
+        self.assertEqual(response.status_code, 200)
+        self.assertIn("X-Response-Time", response.headers)
+        self.assertIn("Server-Timing", response.headers)
+        self.assertTrue(response.headers["X-Response-Time"].endswith("s"))
+
+    def test_blood_availability_response_time_under_sla(self):
+        start = time.perf_counter()
+        response = self.client.get(reverse("blood_availability"))
+        elapsed = time.perf_counter() - start
+
+        self.assertEqual(response.status_code, 200)
+        self.assertLess(elapsed, 3.0, f"Blood availability response time {elapsed}s exceeded 3s target")
+
+    def test_login_response_time_under_sla(self):
+        start = time.perf_counter()
+        response = self.client.get(reverse("login"))
+        elapsed_get = time.perf_counter() - start
+        self.assertEqual(response.status_code, 200)
+        self.assertLess(elapsed_get, 3.0, f"Login GET response time {elapsed_get}s exceeded 3s target")
+
+        start = time.perf_counter()
+        post_response = self.client.post(
+            reverse("login"),
+            {"username": "perf_donor", "password": self.password}
+        )
+        elapsed_post = time.perf_counter() - start
+        self.assertIn(post_response.status_code, (200, 302))
+        self.assertLess(elapsed_post, 3.0, f"Login POST response time {elapsed_post}s exceeded 3s target")
+
+    def test_staff_donation_dashboard_response_time_under_sla(self):
+        self.client.force_login(self.staff_user)
+        start = time.perf_counter()
+        response = self.client.get(reverse("manage_donations"))
+        elapsed = time.perf_counter() - start
+
+        self.assertEqual(response.status_code, 200)
+        self.assertLess(elapsed, 3.0, f"Manage donations response time {elapsed}s exceeded 3s target")
+
+    def test_donation_and_request_history_response_times_under_sla(self):
+        self.client.force_login(self.donor_user)
+        start = time.perf_counter()
+        response_don = self.client.get(reverse("donation_history"))
+        elapsed_don = time.perf_counter() - start
+
+        self.assertEqual(response_don.status_code, 200)
+        self.assertLess(elapsed_don, 3.0, f"Donation history response time {elapsed_don}s exceeded 3s target")
+
+        self.client.force_login(self.patient_user)
+        start = time.perf_counter()
+        response_req = self.client.get(reverse("blood_request_history"))
+        elapsed_req = time.perf_counter() - start
+
+        self.assertEqual(response_req.status_code, 200)
+        self.assertLess(elapsed_req, 3.0, f"Request history response time {elapsed_req}s exceeded 3s target")
+
+    def test_ninety_five_percent_of_measured_requests_under_target(self):
+        urls_to_test = [
+            reverse("blood_availability"),
+            reverse("login"),
+            reverse("register"),
+        ]
+
+        latencies = []
+        for _ in range(15):
+            for url in urls_to_test:
+                start = time.perf_counter()
+                res = self.client.get(url)
+                duration = time.perf_counter() - start
+                self.assertEqual(res.status_code, 200)
+                latencies.append(duration)
+
+        total_requests = len(latencies)
+        within_sla = [t for t in latencies if t < 3.0]
+        compliance_ratio = len(within_sla) / total_requests
+
+        self.assertGreaterEqual(
+            compliance_ratio,
+            0.95,
+            f"Expected at least 95% within 3s, achieved {compliance_ratio * 100:.1f}% ({len(within_sla)}/{total_requests})"
+        )
+
+    def test_blood_availability_query_count_prevents_n_plus_one(self):
+        with self.assertNumQueries(2):
+            response = self.client.get(reverse("blood_availability"))
+            self.assertEqual(response.status_code, 200)
+
+    def test_manage_donations_pagination_bounds_display_count(self):
+        for i in range(20):
+            Donation.objects.create(
+                donor=self.donor_user,
+                blood_group="AB+",
+                donation_date=date.today(),
+                units=1
+            )
+
+        self.client.force_login(self.staff_user)
+        response = self.client.get(reverse("manage_donations"))
+        self.assertEqual(response.status_code, 200)
+        page_obj = response.context["page_obj"]
+        self.assertEqual(len(page_obj), 25)
+        self.assertTrue(page_obj.has_next())
+
+    def test_performance_configuration_settings(self):
+        self.assertIn("default", settings.CACHES)
+        self.assertEqual(settings.DATABASES["default"].get("CONN_MAX_AGE"), 600)
+        self.assertIn("django.middleware.gzip.GZipMiddleware", settings.MIDDLEWARE)
+        self.assertIn("blood.middleware.PerformanceTimingMiddleware", settings.MIDDLEWARE)
+
+    def test_admin_classes_have_list_select_related(self):
+        from .admin import BloodRequestAdmin, PatientProfileAdmin, DonorProfileAdmin
+        self.assertEqual(DonationAdmin.list_select_related, ("donor", "reviewed_by"))
+        self.assertEqual(BloodRequestAdmin.list_select_related, ("patient",))
+        self.assertEqual(PatientProfileAdmin.list_select_related, ("user",))
+        self.assertEqual(DonorProfileAdmin.list_select_related, ("user",))
+
