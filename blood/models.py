@@ -29,12 +29,14 @@ class Donation(models.Model):
     )
     blood_group = models.CharField(
         max_length=3,
-        choices=BLOOD_GROUPS
+        choices=BLOOD_GROUPS,
+        db_index=True
     )
-    donation_date = models.DateField()
+    donation_date = models.DateField(db_index=True)
     expiry_date = models.DateField(
         null=True,
         blank=True,
+        db_index=True,
         help_text='Recorded expiration date of donated blood units (defaults to donation date + 42 days)'
     )
     units = models.PositiveSmallIntegerField(default=1)
@@ -42,7 +44,8 @@ class Donation(models.Model):
     status = models.CharField(
         max_length=10,
         choices=STATUS_CHOICES,
-        default='Pending'
+        default='Pending',
+        db_index=True
     )
     reviewed_by = models.ForeignKey(
         User,
@@ -52,7 +55,14 @@ class Donation(models.Model):
         related_name='reviewed_donations'
     )
     reviewed_at = models.DateTimeField(null=True, blank=True)
-    created_at = models.DateTimeField(auto_now_add=True)
+    created_at = models.DateTimeField(auto_now_add=True, db_index=True)
+
+    class Meta:
+        indexes = [
+            models.Index(fields=['blood_group', 'status', 'expiry_date'], name='donation_bg_stat_exp_idx'),
+            models.Index(fields=['donor', '-donation_date'], name='donation_donor_date_idx'),
+            models.Index(fields=['status', '-created_at'], name='donation_stat_created_idx'),
+        ]
 
     def save(self, *args, **kwargs):
         if not self.expiry_date and self.donation_date:
@@ -74,17 +84,25 @@ class BloodRequest(models.Model):
     )
     blood_group = models.CharField(
         max_length=3,
-        choices=BLOOD_GROUPS
+        choices=BLOOD_GROUPS,
+        db_index=True
     )
     units = models.PositiveSmallIntegerField(default=1)
-    needed_by_date = models.DateField()
+    needed_by_date = models.DateField(db_index=True)
     notes = models.TextField(blank=True)
     status = models.CharField(
         max_length=10,
         choices=STATUS_CHOICES,
-        default='Pending'
+        default='Pending',
+        db_index=True
     )
-    created_at = models.DateTimeField(auto_now_add=True)
+    created_at = models.DateTimeField(auto_now_add=True, db_index=True)
+
+    class Meta:
+        indexes = [
+            models.Index(fields=['patient', '-needed_by_date'], name='req_patient_date_idx'),
+            models.Index(fields=['status', '-created_at'], name='req_stat_created_idx'),
+        ]
 
     def __str__(self):
         return f"{self.patient.username} - {self.blood_group} - {self.status}"
@@ -100,6 +118,7 @@ class BloodInventory(models.Model):
     expiry_date = models.DateField(
         null=True,
         blank=True,
+        db_index=True,
         help_text='Earliest recorded expiry date for available units'
     )
     updated_at = models.DateTimeField(auto_now=True)
@@ -133,7 +152,8 @@ class PatientProfile(models.Model):
     blood_group = models.CharField(
         max_length=3,
         choices=Donation.BLOOD_GROUPS,
-        blank=True
+        blank=True,
+        db_index=True
     )
     age = models.PositiveSmallIntegerField(null=True, blank=True)
     disease = models.CharField(
@@ -164,7 +184,8 @@ class DonorProfile(models.Model):
     blood_group = models.CharField(
         max_length=3,
         choices=Donation.BLOOD_GROUPS,
-        blank=True
+        blank=True,
+        db_index=True
     )
     age = models.PositiveSmallIntegerField(null=True, blank=True)
     contact_phone = models.CharField(max_length=20, blank=True)

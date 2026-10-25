@@ -3,6 +3,8 @@ from django.contrib.admin.views.decorators import staff_member_required
 from django.contrib.auth import authenticate, login as auth_login, logout as auth_logout
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.forms import AuthenticationForm
+from django.core.paginator import Paginator
+from django.db.models import Min
 from django.shortcuts import render, redirect
 from django.views.decorators.http import require_POST
 
@@ -57,14 +59,21 @@ def submit_blood_request(request):
 
 @staff_member_required
 def manage_donations(request):
-    donations = Donation.objects.select_related(
+    donation_list = Donation.objects.select_related(
         'donor', 'reviewed_by'
     ).order_by('-created_at')
+
+    paginator = Paginator(donation_list, 25)
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
 
     return render(
         request,
         'blood/manage_donations.html',
-        {'donations': donations}
+        {
+            'donations': page_obj,
+            'page_obj': page_obj,
+        }
     )
 
 
@@ -98,8 +107,10 @@ def view_blood_availability(request):
     """
     BB-F-011: View Blood Availability
     BB-F-018: Blood Expiry Tracking (TC-INV-05)
+    BB-NF-001: Performance Optimization (TC-PERF-01)
     Displays current available blood stock by blood group along with recorded expiry information.
     Ensures all 8 standard blood groups are displayed, reflecting inventory records.
+    Optimized with single batched aggregation query to prevent N+1 queries.
     This presentation is strictly read-only for users.
     """
     inventory_records = {
@@ -107,12 +118,24 @@ def view_blood_availability(request):
         for item in BloodInventory.objects.all()
     }
 
+    # Batch compute earliest expiry for groups lacking direct inventory expiry in a single query
+    earliest_expiries = {
+        row['blood_group']: row['min_expiry']
+        for row in Donation.objects.filter(
+            status='Approved',
+            expiry_date__isnull=False
+        ).values('blood_group').annotate(min_expiry=Min('expiry_date'))
+    }
+
     blood_groups_data = []
     total_units = 0
     for group, _ in Donation.BLOOD_GROUPS:
         item = inventory_records.get(group)
         units = item.units if item else 0
-        expiry_date = item.nearest_expiry if item else None
+        if item and item.expiry_date:
+            expiry_date = item.expiry_date
+        else:
+            expiry_date = earliest_expiries.get(group)
         total_units += units
         if units == 0:
             status = 'Out of Stock'
