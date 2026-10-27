@@ -80,4 +80,9 @@ urlpatterns = [
         views.review_blood_request,
         name='review_blood_request'
     ),
+    path(
+        'staff/inventory/update/',
+        views.update_inventory,
+        name='update_inventory'
+    ),
 ]

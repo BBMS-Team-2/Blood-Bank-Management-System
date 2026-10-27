@@ -1101,3 +1101,47 @@ class BloodRequestReviewWorkflowTests(TestCase):
         self.assertEqual(review_action_response.status_code, 302)
         self.assertIn("/admin/login/", review_action_response.url)
 
+
+class BloodInventoryUpdateTests(TestCase):
+    def setUp(self):
+        self.staff = User.objects.create_user(username="inventory_admin", password="password123", is_staff=True)
+        self.client.force_login(self.staff)
+
+    def test_staff_can_update_inventory_for_a_blood_group(self):
+        BloodInventory.objects.create(blood_group="A+", units=2)
+
+        response = self.client.post(
+            reverse("update_inventory"),
+            {"blood_group": "A+", "units": 12},
+        )
+
+        self.assertEqual(response.status_code, 302)
+        inventory = BloodInventory.objects.get(blood_group="A+")
+        self.assertEqual(inventory.units, 12)
+
+    def test_invalid_inventory_values_are_rejected(self):
+        response = self.client.post(
+            reverse("update_inventory"),
+            {"blood_group": "A+", "units": -1},
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Ensure this value is greater than or equal to 0.")
+        self.assertFalse(BloodInventory.objects.filter(blood_group="A+").exists())
+
+    def test_non_staff_cannot_access_inventory_update_page(self):
+        self.client.logout()
+        user = User.objects.create_user(username="regular_user", password="password123")
+        self.client.force_login(user)
+
+        response = self.client.get(reverse("update_inventory"))
+        self.assertEqual(response.status_code, 302)
+        self.assertIn("/admin/login/", response.url)
+
+    def test_inventory_update_uses_existing_blood_group_choices(self):
+        response = self.client.get(reverse("update_inventory"))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'name="blood_group"')
+        self.assertContains(response, 'A+')
+        self.assertContains(response, 'O-')
+

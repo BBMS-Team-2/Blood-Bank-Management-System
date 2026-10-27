@@ -226,3 +226,24 @@ class UserRegisterForm(UserCreationForm):
     class Meta:
         model = User
         fields = ['username', 'email']
+
+
+class BloodInventoryUpdateForm(forms.Form):
+    """Admin-only form for maintaining blood inventory stock by blood group."""
+    blood_group = forms.ChoiceField(choices=Donation.BLOOD_GROUPS, label='Blood Group')
+    units = forms.IntegerField(min_value=0, label='Units in Stock')
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        for field_name, field in self.fields.items():
+            field.widget.attrs.update({'class': 'form-control'})
+        self.fields['units'].widget.attrs.update({
+            'min': '0',
+            'placeholder': 'Enter stock count',
+        })
+
+    def clean_units(self):
+        units = self.cleaned_data.get('units')
+        if units is None or units < 0:
+            raise forms.ValidationError('Inventory units cannot be negative.')
+        return units

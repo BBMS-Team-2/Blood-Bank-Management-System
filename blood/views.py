@@ -8,10 +8,11 @@ from django.db.models import Min
 from django.shortcuts import render, redirect
 from django.views.decorators.http import require_POST
 
-from .forms import DonationForm, BloodRequestForm, PatientProfileForm, DonorProfileForm, UserRegisterForm
+from .forms import DonationForm, BloodRequestForm, PatientProfileForm, DonorProfileForm, UserRegisterForm, BloodInventoryUpdateForm
 from .models import Donation, BloodInventory, BloodRequest, PatientProfile, DonorProfile
 from .services import review_donation as process_donation_review
 from .services import review_blood_request as process_blood_request_review
+from .services import update_inventory_stock
 
 
 @login_required
@@ -358,3 +359,32 @@ def logout_view(request):
     auth_logout(request)
     messages.info(request, 'You have been logged out.')
     return redirect('login')
+
+
+@staff_member_required
+def update_inventory(request):
+    """Allow staff to maintain per-blood-group inventory counts."""
+    inventory_records = BloodInventory.objects.order_by('blood_group')
+
+    if request.method == 'POST':
+        form = BloodInventoryUpdateForm(request.POST)
+        if form.is_valid():
+            blood_group = form.cleaned_data['blood_group']
+            units = form.cleaned_data['units']
+            try:
+                update_inventory_stock(blood_group, units)
+                messages.success(request, f'Inventory updated for {blood_group}.')
+            except ValueError as exc:
+                messages.error(request, str(exc))
+            return redirect('update_inventory')
+    else:
+        form = BloodInventoryUpdateForm()
+
+    return render(
+        request,
+        'blood/update_inventory.html',
+        {
+            'form': form,
+            'inventory_records': inventory_records,
+        }
+    )
