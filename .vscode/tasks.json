@@ -1,0 +1,21 @@
+{
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"label": "django-check",
+			"type": "shell",
+			"command": "python manage.py check",
+			"isBackground": false,
+			"problemMatcher": [],
+			"group": "test"
+		},
+		{
+			"label": "django-check-venv",
+			"type": "shell",
+			"command": "\"C:\\Users\\user\\Desktop\\5th\\se\\Blood-Bank-Management-System\\Blood-Bank-Management-System\\.venv\\Scripts\\python.exe\" manage.py check",
+			"isBackground": false,
+			"problemMatcher": [],
+			"group": "test"
+		}
+	]
+}

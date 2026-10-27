@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Blood Request Review - Blood Bank Management System</title>
+    <style>
+        :root {
+            --primary: #dc2626;
+            --primary-dark: #991b1b;
+            --background: #f8fafc;
+            --panel: #ffffff;
+            --border: #e2e8f0;
+            --text-dark: #0f172a;
+            --text-muted: #64748b;
+            --success: #16a34a;
+            --success-bg: #dcfce7;
+            --warning: #b45309;
+            --warning-bg: #fef3c7;
+            --danger: #dc2626;
+            --danger-bg: #fee2e2;
+            --info: #1d4ed8;
+            --info-bg: #dbeafe;
+        }
+
+        * { box-sizing: border-box; }
+
+        body {
+            margin: 0;
+            padding: 0;
+            min-height: 100vh;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+            color: var(--text-dark);
+            background: linear-gradient(135deg, #fef2f2 0%, #f8fafc 50%, #eff6ff 100%);
+        }
+
+        .container {
+            max-width: 1180px;
+            margin: 0 auto;
+            padding: 30px 20px 50px 20px;
+        }
+
+        .header-panel {
+            background: linear-gradient(135deg, var(--primary-dark) 0%, var(--primary) 100%);
+            color: white;
+            border-radius: 20px;
+            padding: 32px 36px;
+            box-shadow: 0 15px 30px rgba(220, 38, 38, 0.18);
+            margin-bottom: 24px;
+        }
+
+        .header-panel h1 {
+            margin: 0 0 6px;
+            font-size: clamp(1.8rem, 3vw, 2.4rem);
+        }
+
+        .header-panel p {
+            margin: 0;
+            color: #fecaca;
+            font-size: 0.95rem;
+        }
+
+        .card {
+            background: var(--panel);
+            border: 1px solid var(--border);
+            border-radius: 18px;
+            overflow: hidden;
+            box-shadow: 0 6px 18px rgba(0, 0, 0, 0.04);
+        }
+
+        .alert {
+            padding: 12px 16px;
+            margin: 20px 20px 0;
+            border-radius: 10px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            border: 1px solid transparent;
+        }
+
+        .alert-success { background: var(--success-bg); color: var(--success); border-color: #bbf7d0; }
+        .alert-warning { background: var(--warning-bg); color: var(--warning); border-color: #fde68a; }
+        .alert-error { background: var(--danger-bg); color: var(--danger); border-color: #fecaca; }
+        .alert-info { background: var(--info-bg); color: var(--info); border-color: #bfdbfe; }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            text-align: left;
+        }
+
+        th {
+            background: #f8fafc;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.6px;
+            font-size: 0.8rem;
+            padding: 16px 20px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        td {
+            padding: 18px 20px;
+            border-bottom: 1px solid #f1f5f9;
+            font-size: 0.92rem;
+            vertical-align: middle;
+        }
+
+        tr:last-child td { border-bottom: none; }
+        tr:hover td { background: #fafaf9; }
+
+        .badge-blood {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 38px;
+            height: 38px;
+            border-radius: 50%;
+            background: #fee2e2;
+            color: var(--primary-dark);
+            font-weight: 800;
+            font-size: 0.92rem;
+            border: 1.5px solid #fca5a5;
+        }
+
+        .status-pill {
+            display: inline-block;
+            padding: 5px 12px;
+            border-radius: 16px;
+            font-size: 0.75rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.4px;
+        }
+
+        .status-Pending { background: var(--warning-bg); color: var(--warning); }
+        .status-Approved { background: var(--success-bg); color: var(--success); }
+        .status-Rejected { background: var(--danger-bg); color: var(--danger); }
+
+        .review-form {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .action-btn {
+            border: none;
+            border-radius: 8px;
+            padding: 8px 14px;
+            font-weight: 700;
+            font-size: 0.84rem;
+            cursor: pointer;
+            transition: transform 0.15s ease, box-shadow 0.15s ease;
+        }
+
+        .action-btn:hover { transform: translateY(-1px); }
+
+        .action-btn.approve {
+            background: #16a34a;
+            color: white;
+        }
+
+        .action-btn.reject {
+            background: #dc2626;
+            color: white;
+        }
+
+        .empty-state {
+            padding: 60px 20px;
+            text-align: center;
+            color: var(--text-muted);
+        }
+
+        .empty-state h3 {
+            margin: 0 0 8px;
+            font-size: 1.25rem;
+            color: var(--text-dark);
+        }
+
+        @media (max-width: 700px) {
+            .card { overflow-x: auto; }
+            table { min-width: 760px; }
+        }
+    </style>
+</head>
+<body>
+    {% include "blood/navbar.html" %}
+
+    <div class="container">
+        <header class="header-panel">
+            <div>
+                <h1>Blood Request Review</h1>
+                <p>Review and process pending blood requests submitted by patients.</p>
+            </div>
+        </header>
+
+        <main class="card">
+            {% if messages %}
+                {% for message in messages %}
+                    <div class="alert alert-{{ message.tags|default:'info' }}" role="status">{{ message }}</div>
+                {% endfor %}
+            {% endif %}
+
+            {% if blood_requests %}
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Patient</th>
+                            <th>Blood Group</th>
+                            <th>Units</th>
+                            <th>Needed By</th>
+                            <th>Status</th>
+                            <th>Notes</th>
+                            <th>Review</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for request in blood_requests %}
+                            <tr>
+                                <td><strong>{{ request.patient.username }}</strong></td>
+                                <td><span class="badge-blood">{{ request.blood_group }}</span></td>
+                                <td><strong>{{ request.units }}</strong> unit{{ request.units|pluralize }}</td>
+                                <td>{{ request.needed_by_date }}</td>
+                                <td>
+                                    <span class="status-pill status-{{ request.status }}">{{ request.status }}</span>
+                                </td>
+                                <td>{{ request.notes|default:"-" }}</td>
+                                <td>
+                                    {% if request.status == 'Pending' %}
+                                        <form method="post" action="{% url 'review_blood_request' request.id %}" class="review-form">
+                                            {% csrf_token %}
+                                            <button type="submit" name="action" value="approve" class="action-btn approve">Approve</button>
+                                            <button type="submit" name="action" value="reject" class="action-btn reject">Reject</button>
+                                        </form>
+                                    {% else %}
+                                        <span style="color: var(--text-muted); font-size: 0.85rem;">
+                                            Processed
+                                        </span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            {% else %}
+                <div class="empty-state">
+                    <h3>No Pending Blood Requests</h3>
+                    <p>There are no blood requests awaiting review.</p>
+                </div>
+            {% endif %}
+        </main>
+    </div>
+</body>
+</html>
