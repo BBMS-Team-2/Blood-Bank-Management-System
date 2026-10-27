@@ -70,4 +70,14 @@ urlpatterns = [
         views.register_view,
         name='register'
     ),
+    path(
+        'staff/requests/',
+        views.manage_blood_requests,
+        name='manage_blood_requests'
+    ),
+    path(
+        'staff/requests/<int:request_id>/review/',
+        views.review_blood_request,
+        name='review_blood_request'
+    ),
 ]

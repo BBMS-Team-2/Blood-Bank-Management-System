@@ -1,7 +1,7 @@
 from django.contrib import admin, messages
 
 from .models import Donation, BloodInventory, BloodRequest, PatientProfile, DonorProfile
-from .services import review_donation
+from .services import review_donation, review_blood_request
 
 
 @admin.register(Donation)
@@ -63,6 +63,29 @@ class BloodRequestAdmin(admin.ModelAdmin):
     list_select_related = ('patient',)
     list_filter = ('status', 'blood_group')
     search_fields = ('patient__username',)
+    actions = ('approve_requests', 'reject_requests')
+
+    @admin.action(description='Approve selected pending requests')
+    def approve_requests(self, request, queryset):
+        self._review_selected(request, queryset, 'approve')
+
+    @admin.action(description='Reject selected pending requests')
+    def reject_requests(self, request, queryset):
+        self._review_selected(request, queryset, 'reject')
+
+    def _review_selected(self, request, queryset, action):
+        completed = 0
+
+        for request_id in queryset.values_list('id', flat=True):
+            if review_blood_request(request_id, request.user, action):
+                completed += 1
+
+        self.message_user(
+            request,
+            f'{completed} request(s) {action}d. '
+            f'Already processed, insufficient stock, or missing: {queryset.count() - completed}.',
+            level=messages.SUCCESS if completed else messages.WARNING,
+        )
 
 
 @admin.register(PatientProfile)

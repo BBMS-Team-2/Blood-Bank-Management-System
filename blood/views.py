@@ -11,6 +11,7 @@ from django.views.decorators.http import require_POST
 from .forms import DonationForm, BloodRequestForm, PatientProfileForm, DonorProfileForm, UserRegisterForm
 from .models import Donation, BloodInventory, BloodRequest, PatientProfile, DonorProfile
 from .services import review_donation as process_donation_review
+from .services import review_blood_request as process_blood_request_review
 
 
 @login_required
@@ -101,6 +102,50 @@ def review_donation(request, donation_id):
         )
 
     return redirect('manage_donations')
+
+
+@staff_member_required
+def manage_blood_requests(request):
+    """Display pending blood requests for administrative review."""
+    blood_requests = BloodRequest.objects.select_related('patient').filter(
+        status='Pending'
+    ).order_by('-created_at')
+    return render(
+        request,
+        'blood/manage_blood_requests.html',
+        {
+            'blood_requests': blood_requests,
+        }
+    )
+
+
+@staff_member_required
+@require_POST
+def review_blood_request(request, request_id):
+    action = request.POST.get('action')
+
+    if action not in ('approve', 'reject'):
+        messages.error(request, 'Invalid review action.')
+        return redirect('manage_blood_requests')
+
+    completed = process_blood_request_review(
+        request_id,
+        request.user,
+        action,
+    )
+
+    if completed:
+        messages.success(request, f'Blood request {action}d successfully.')
+    else:
+        blood_request = BloodRequest.objects.filter(pk=request_id).first()
+        if blood_request and blood_request.status != 'Pending':
+            messages.warning(request, 'Blood request has already been processed.')
+        elif blood_request and blood_request.blood_group and blood_request.units:
+            messages.warning(request, 'Insufficient blood stock to approve this request.')
+        else:
+            messages.warning(request, 'Blood request not found or already processed.')
+
+    return redirect('manage_blood_requests')
 
 
 def view_blood_availability(request):

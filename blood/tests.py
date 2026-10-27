@@ -11,7 +11,7 @@ from django.urls import reverse
 
 from .admin import DonationAdmin
 from .models import BloodInventory, BloodRequest, Donation, PatientProfile, DonorProfile
-from .services import review_donation
+from .services import review_donation, review_blood_request
 
 
 class DonationSubmissionTests(TestCase):
@@ -942,4 +942,162 @@ class PerformanceRequirementsTests(TestCase):
         self.assertEqual(BloodRequestAdmin.list_select_related, ("patient",))
         self.assertEqual(PatientProfileAdmin.list_select_related, ("user",))
         self.assertEqual(DonorProfileAdmin.list_select_related, ("user",))
+
+
+class BloodRequestReviewServiceTests(TestCase):
+    def setUp(self):
+        self.patient = User.objects.create_user(username="request_patient")
+        self.reviewer = User.objects.create_user(
+            username="request_reviewer",
+            is_staff=True,
+        )
+
+    def create_request(self, units=2, blood_group="O+"):
+        return BloodRequest.objects.create(
+            patient=self.patient,
+            blood_group=blood_group,
+            units=units,
+            needed_by_date=date.today() + timedelta(days=5),
+            notes="Urgent surgery support",
+        )
+
+    def test_approving_pending_request_deducts_inventory(self):
+        request = self.create_request(units=3)
+        BloodInventory.objects.create(blood_group="O+", units=10)
+
+        self.assertTrue(
+            review_blood_request(request.id, self.reviewer, "approve")
+        )
+
+        request.refresh_from_db()
+        self.assertEqual(request.status, "Approved")
+        self.assertEqual(BloodInventory.objects.get(blood_group="O+").units, 7)
+
+    def test_rejecting_pending_request_does_not_modify_inventory(self):
+        request = self.create_request(units=3)
+        BloodInventory.objects.create(blood_group="O+", units=10)
+
+        self.assertTrue(
+            review_blood_request(request.id, self.reviewer, "reject")
+        )
+
+        request.refresh_from_db()
+        self.assertEqual(request.status, "Rejected")
+        self.assertEqual(BloodInventory.objects.get(blood_group="O+").units, 10)
+
+    def test_repeated_review_of_processed_request_is_rejected(self):
+        request = self.create_request(units=2)
+        BloodInventory.objects.create(blood_group="O+", units=5)
+
+        self.assertTrue(
+            review_blood_request(request.id, self.reviewer, "approve")
+        )
+        self.assertFalse(
+            review_blood_request(request.id, self.reviewer, "reject")
+        )
+        self.assertFalse(
+            review_blood_request(request.id, self.reviewer, "approve")
+        )
+
+        request.refresh_from_db()
+        self.assertEqual(request.status, "Approved")
+        self.assertEqual(BloodInventory.objects.get(blood_group="O+").units, 3)
+
+    def test_approval_requires_sufficient_stock(self):
+        request = self.create_request(units=5)
+        BloodInventory.objects.create(blood_group="O+", units=3)
+
+        self.assertFalse(
+            review_blood_request(request.id, self.reviewer, "approve")
+        )
+
+        request.refresh_from_db()
+        self.assertEqual(request.status, "Pending")
+        self.assertEqual(BloodInventory.objects.get(blood_group="O+").units, 3)
+
+
+class BloodRequestReviewWorkflowTests(TestCase):
+    def setUp(self):
+        self.patient = User.objects.create_user(username="workflow_patient")
+        self.reviewer = User.objects.create_user(username="workflow_reviewer", is_staff=True)
+        self.client.force_login(self.reviewer)
+        self.request = BloodRequest.objects.create(
+            patient=self.patient,
+            blood_group="A+",
+            units=2,
+            needed_by_date=date.today() + timedelta(days=4),
+            notes="Routine check-up",
+        )
+
+    def test_staff_can_review_pending_requests(self):
+        BloodInventory.objects.create(blood_group="A+", units=5)
+
+        response = self.client.post(
+            reverse("review_blood_request", kwargs={"request_id": self.request.id}),
+            {"action": "approve"},
+        )
+
+        self.assertRedirects(response, reverse("manage_blood_requests"))
+        self.request.refresh_from_db()
+        self.assertEqual(self.request.status, "Approved")
+        self.assertEqual(BloodInventory.objects.get(blood_group="A+").units, 3)
+
+    def test_staff_review_rejects_invalid_and_insufficient_stock_actions(self):
+        invalid_response = self.client.post(
+            reverse("review_blood_request", kwargs={"request_id": self.request.id}),
+            {"action": "invalid"},
+        )
+
+        self.assertRedirects(invalid_response, reverse("manage_blood_requests"))
+        self.request.refresh_from_db()
+        self.assertEqual(self.request.status, "Pending")
+
+        BloodInventory.objects.create(blood_group="A+", units=1)
+        insufficient_response = self.client.post(
+            reverse("review_blood_request", kwargs={"request_id": self.request.id}),
+            {"action": "approve"},
+        )
+
+        self.assertRedirects(insufficient_response, reverse("manage_blood_requests"))
+        self.request.refresh_from_db()
+        self.assertEqual(self.request.status, "Pending")
+        self.assertEqual(BloodInventory.objects.get(blood_group="A+").units, 1)
+
+    def test_review_page_lists_only_pending_requests(self):
+        second_pending = BloodRequest.objects.create(
+            patient=self.patient,
+            blood_group="B+",
+            units=1,
+            needed_by_date=date.today() + timedelta(days=2),
+            notes="Another request",
+            status="Pending",
+        )
+        BloodRequest.objects.create(
+            patient=self.patient,
+            blood_group="AB+",
+            units=1,
+            needed_by_date=date.today() + timedelta(days=1),
+            notes="Already handled",
+            status="Approved",
+        )
+
+        response = self.client.get(reverse("manage_blood_requests"))
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(list(response.context["blood_requests"]), [self.request, second_pending])
+
+    def test_non_staff_user_cannot_access_review_page(self):
+        self.client.logout()
+        user = User.objects.create_user(username="plain_user", password="pass123")
+        self.client.force_login(user)
+
+        review_page_response = self.client.get(reverse("manage_blood_requests"))
+        review_action_response = self.client.post(
+            reverse("review_blood_request", kwargs={"request_id": self.request.id}),
+            {"action": "approve"},
+        )
+
+        self.assertEqual(review_page_response.status_code, 302)
+        self.assertIn("/admin/login/", review_page_response.url)
+        self.assertEqual(review_action_response.status_code, 302)
+        self.assertIn("/admin/login/", review_action_response.url)
 

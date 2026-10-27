@@ -179,6 +179,7 @@
                 {% if user.is_staff %}
                     <span class="bbms-nav-separator"></span>
                     <a href="{% url 'manage_donations' %}" class="bbms-nav-link">Review Donations</a>
+                    <a href="{% url 'manage_blood_requests' %}" class="bbms-nav-link">Review Requests</a>
                     <a href="/admin/" class="bbms-nav-link" target="_blank">Admin</a>
                 {% endif %}
             {% endif %}
