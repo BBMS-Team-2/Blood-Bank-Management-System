@@ -440,6 +440,40 @@ class DonationHistoryTests(TestCase):
         self.assertEqual(response.status_code, 302)
         self.assertIn("/accounts/login", response.url)
 
+    def test_donation_history_calculates_lifetime_metrics_and_tier(self):
+        self.client.force_login(self.donor1)
+        response = self.client.get(reverse("donation_history"))
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.context["total_units_donated"], 2)
+        self.assertEqual(response.context["estimated_lives_saved"], 6)
+        self.assertEqual(response.context["donor_tier"], "Bronze Donor")
+        self.assertContains(response, "Bronze Donor")
+        self.assertContains(response, "Estimated Lives Saved")
+
+    def test_next_eligible_donation_date_countdown(self):
+        # Donation made today requires waiting 56 days
+        self.client.force_login(self.donor1)
+        res_recent = self.client.get(reverse("donation_history"))
+        self.assertEqual(res_recent.status_code, 200)
+        self.assertFalse(res_recent.context["is_eligible"])
+        self.assertEqual(res_recent.context["days_remaining"], 56)
+
+        # Donor with older donation (>56 days ago) is eligible
+        eligible_donor = User.objects.create_user(username="eligible_donor", password="password123")
+        Donation.objects.create(
+            donor=eligible_donor,
+            blood_group="O+",
+            donation_date=date.today() - timedelta(days=60),
+            units=1,
+            status="Approved"
+        )
+        self.client.force_login(eligible_donor)
+        res_eligible = self.client.get(reverse("donation_history"))
+        self.assertEqual(res_eligible.status_code, 200)
+        self.assertTrue(res_eligible.context["is_eligible"])
+        self.assertEqual(res_eligible.context["days_remaining"], 0)
+        self.assertContains(res_eligible, "You Are Eligible to Donate Today!")
+
 
 class BloodRequestHistoryTests(TestCase):
     """

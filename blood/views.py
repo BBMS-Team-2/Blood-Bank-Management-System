@@ -1,3 +1,5 @@
+from datetime import date, timedelta
+
 from django.contrib import messages
 from django.contrib.admin.views.decorators import staff_member_required
 from django.contrib.auth import authenticate, login as auth_login, logout as auth_logout
@@ -298,15 +300,60 @@ def donation_history(request):
     BB-F-007: Donation History (BB-SR-003)
     Allows authenticated donors to view their past donation records and review status.
     Ensures complete isolation so donors can only view their own records.
+    Calculates donor impact metrics and next eligible donation date (56-day clinical interval).
     """
-    donations = Donation.objects.filter(
+    donations = list(Donation.objects.filter(
         donor=request.user
-    ).select_related('reviewed_by').order_by('-donation_date', '-created_at')
+    ).select_related('reviewed_by').order_by('-donation_date', '-created_at'))
+
+    today = date.today()
+    approved_donations = [d for d in donations if d.status == 'Approved']
+    total_units_donated = sum(d.units for d in approved_donations)
+    estimated_lives_saved = total_units_donated * 3
+
+    # Donor recognition tier
+    approved_count = len(approved_donations)
+    if approved_count >= 6:
+        donor_tier = "Gold Champion"
+        donor_badge_class = "tier-gold"
+    elif approved_count >= 3:
+        donor_tier = "Silver Donor"
+        donor_badge_class = "tier-silver"
+    elif approved_count >= 1:
+        donor_tier = "Bronze Donor"
+        donor_badge_class = "tier-bronze"
+    else:
+        donor_tier = "New Hero"
+        donor_badge_class = "tier-starter"
+
+    # Clinical 56-day whole blood donation eligibility interval
+    if donations:
+        latest_donation = donations[0]
+        next_eligible_date = latest_donation.donation_date + timedelta(days=56)
+        days_remaining = (next_eligible_date - today).days
+        is_eligible = days_remaining <= 0
+        if is_eligible:
+            days_remaining = 0
+    else:
+        next_eligible_date = today
+        days_remaining = 0
+        is_eligible = True
 
     return render(
         request,
         'blood/donation_history.html',
-        {'donations': donations}
+        {
+            'donations': donations,
+            'total_donations': len(donations),
+            'approved_count': approved_count,
+            'total_units_donated': total_units_donated,
+            'estimated_lives_saved': estimated_lives_saved,
+            'donor_tier': donor_tier,
+            'donor_badge_class': donor_badge_class,
+            'is_eligible': is_eligible,
+            'next_eligible_date': next_eligible_date,
+            'days_remaining': days_remaining,
+        }
     )
 
 
