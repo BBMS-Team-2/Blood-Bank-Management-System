@@ -11,7 +11,7 @@ from django.urls import reverse
 
 from .admin import DonationAdmin
 from .models import BloodInventory, BloodRequest, Donation, PatientProfile, DonorProfile
-from .services import review_donation, review_blood_request
+from .services import review_donation, review_blood_request, set_user_active_status
 
 
 class DonationSubmissionTests(TestCase):
@@ -1144,4 +1144,295 @@ class BloodInventoryUpdateTests(TestCase):
         self.assertContains(response, 'name="blood_group"')
         self.assertContains(response, 'A+')
         self.assertContains(response, 'O-')
+
+
+class AdminDashboardTests(TestCase):
+    """
+    BB-F-016: Administrator Dashboard (TC-ADM-01, BB-SR-003)
+    Verifies staff-only access control, aggregated donor/patient metrics,
+    blood request and donation status breakdowns, inventory stock counts,
+    and staff navigation links.
+    """
+    def setUp(self):
+        self.staff_user = User.objects.create_user(
+            username="dashboard_staff",
+            password="staffpassword123",
+            is_staff=True,
+        )
+        self.regular_user = User.objects.create_user(
+            username="regular_dashboard_user",
+            password="regularpassword123",
+            is_staff=False,
+        )
+        self.client.force_login(self.staff_user)
+
+    def test_non_staff_user_is_redirected(self):
+        self.client.logout()
+        self.client.force_login(self.regular_user)
+        response = self.client.get(reverse('admin_dashboard'))
+        self.assertEqual(response.status_code, 302)
+        self.assertIn('/admin/login/', response.url)
+
+    def test_unauthenticated_user_is_redirected(self):
+        self.client.logout()
+        response = self.client.get(reverse('admin_dashboard'))
+        self.assertEqual(response.status_code, 302)
+        self.assertIn('/admin/login/', response.url)
+
+    def test_dashboard_shows_accurate_donor_and_patient_counts(self):
+        u1 = User.objects.create_user(username="donor1", password="pw1")
+        u2 = User.objects.create_user(username="donor2", password="pw2")
+        u3 = User.objects.create_user(username="patient1", password="pw3")
+        u4 = User.objects.create_user(username="dual_user", password="pw4")
+
+        DonorProfile.objects.create(user=u1, blood_group="A+")
+        DonorProfile.objects.create(user=u2, blood_group="B+")
+        DonorProfile.objects.create(user=u4, blood_group="O+")
+
+        PatientProfile.objects.create(user=u3, blood_group="AB+")
+        PatientProfile.objects.create(user=u4, blood_group="O+")
+
+        response = self.client.get(reverse('admin_dashboard'))
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.context['donor_count'], 3)
+        self.assertEqual(response.context['patient_count'], 2)
+        self.assertContains(response, '3')
+        self.assertContains(response, '2')
+
+    def test_dashboard_shows_accurate_blood_requests_by_status(self):
+        patient = User.objects.create_user(username="patient_req", password="pw")
+        today = date.today()
+        BloodRequest.objects.create(patient=patient, blood_group="A+", units=2, needed_by_date=today, status="Pending")
+        BloodRequest.objects.create(patient=patient, blood_group="B+", units=1, needed_by_date=today, status="Pending")
+        BloodRequest.objects.create(patient=patient, blood_group="O+", units=3, needed_by_date=today, status="Approved")
+        BloodRequest.objects.create(patient=patient, blood_group="AB-", units=1, needed_by_date=today, status="Rejected")
+
+        response = self.client.get(reverse('admin_dashboard'))
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.context['request_counts']['total'], 4)
+        self.assertEqual(response.context['request_counts']['pending'], 2)
+        self.assertEqual(response.context['request_counts']['approved'], 1)
+        self.assertEqual(response.context['request_counts']['rejected'], 1)
+
+    def test_dashboard_shows_accurate_donations_by_status(self):
+        donor = User.objects.create_user(username="donor_don", password="pw")
+        today = date.today()
+        Donation.objects.create(donor=donor, blood_group="A+", units=1, donation_date=today, status="Pending")
+        Donation.objects.create(donor=donor, blood_group="A-", units=2, donation_date=today, status="Approved")
+        Donation.objects.create(donor=donor, blood_group="B+", units=1, donation_date=today, status="Approved")
+        Donation.objects.create(donor=donor, blood_group="O-", units=1, donation_date=today, status="Rejected")
+
+        response = self.client.get(reverse('admin_dashboard'))
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.context['donation_counts']['total'], 4)
+        self.assertEqual(response.context['donation_counts']['pending'], 1)
+        self.assertEqual(response.context['donation_counts']['approved'], 2)
+        self.assertEqual(response.context['donation_counts']['rejected'], 1)
+
+    def test_dashboard_shows_accurate_stock_per_blood_group_and_total(self):
+        BloodInventory.objects.create(blood_group="A+", units=10)
+        BloodInventory.objects.create(blood_group="B+", units=5)
+        BloodInventory.objects.create(blood_group="O-", units=8)
+
+        response = self.client.get(reverse('admin_dashboard'))
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.context['total_stock_units'], 23)
+
+        stock_dict = {item['blood_group']: item['units'] for item in response.context['stock_by_group']}
+        self.assertEqual(len(stock_dict), 8)
+        self.assertEqual(stock_dict['A+'], 10)
+        self.assertEqual(stock_dict['B+'], 5)
+        self.assertEqual(stock_dict['O-'], 8)
+        self.assertEqual(stock_dict['AB+'], 0)
+
+    def test_dashboard_links_to_existing_staff_pages(self):
+        response = self.client.get(reverse('admin_dashboard'))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, reverse('manage_donations'))
+        self.assertContains(response, reverse('manage_blood_requests'))
+        self.assertContains(response, reverse('update_inventory'))
+
+    def test_staff_navbar_contains_dashboard_link(self):
+        response = self.client.get(reverse('admin_dashboard'))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, reverse('admin_dashboard'))
+
+        self.client.logout()
+        self.client.force_login(self.regular_user)
+        user_response = self.client.get(reverse('blood_availability'))
+        self.assertNotContains(user_response, reverse('admin_dashboard'))
+
+
+class UserManagementTests(TestCase):
+    """
+    BB-F-017: User Management (TC-ADM-02, BB-SR-003)
+    Verifies staff-only user management interface, multi-field search across
+    user and profile attributes, activate/deactivate account actions,
+    protection guards for self and superuser accounts, and login prevention
+    for deactivated users.
+    """
+    def setUp(self):
+        self.staff_user = User.objects.create_user(
+            username="staff_admin",
+            password="adminpassword123",
+            email="staff@example.com",
+            is_staff=True,
+        )
+        self.superuser = User.objects.create_superuser(
+            username="super_admin",
+            password="superpassword123",
+            email="super@example.com",
+        )
+        self.target_user = User.objects.create_user(
+            username="john_doe",
+            password="password123",
+            email="john@example.com",
+            first_name="John",
+            last_name="Doe",
+        )
+        self.client.force_login(self.staff_user)
+
+    def test_non_staff_user_cannot_access_user_list(self):
+        self.client.logout()
+        self.client.force_login(self.target_user)
+        response = self.client.get(reverse('user_management'))
+        self.assertEqual(response.status_code, 302)
+        self.assertIn('/admin/login/', response.url)
+
+    def test_unauthenticated_user_cannot_access_user_list(self):
+        self.client.logout()
+        response = self.client.get(reverse('user_management'))
+        self.assertEqual(response.status_code, 302)
+        self.assertIn('/admin/login/', response.url)
+
+    def test_staff_can_view_user_list_with_profiles(self):
+        DonorProfile.objects.create(
+            user=self.target_user,
+            blood_group="O+",
+            age=30,
+            contact_phone="1234567890",
+        )
+        PatientProfile.objects.create(
+            user=self.target_user,
+            blood_group="O+",
+            disease="Anemia",
+            contact_phone="1234567890",
+        )
+
+        response = self.client.get(reverse('user_management'))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "john_doe")
+        self.assertContains(response, "john@example.com")
+        self.assertContains(response, "O+")
+        self.assertContains(response, "1234567890")
+        self.assertContains(response, "Anemia")
+
+    def test_search_users_by_username_and_email(self):
+        User.objects.create_user(username="alice", email="alice@test.org")
+        User.objects.create_user(username="bob", email="bob@sample.net")
+
+        response = self.client.get(reverse('user_management'), {'q': 'alice'})
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "alice")
+        self.assertNotContains(response, "bob@sample.net")
+
+    def test_search_users_by_profile_attributes(self):
+        user_donor = User.objects.create_user(username="donor_only", email="donor@test.org")
+        DonorProfile.objects.create(user=user_donor, blood_group="AB-", contact_phone="9988776655")
+
+        user_patient = User.objects.create_user(username="patient_only", email="patient@test.org")
+        PatientProfile.objects.create(user=user_patient, blood_group="B-", contact_phone="1122334455")
+
+        response = self.client.get(reverse('user_management'), {'q': '9988776655'})
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "donor_only")
+        self.assertNotContains(response, "patient_only")
+
+    def test_toggle_endpoint_rejects_get_requests(self):
+        response = self.client.get(
+            reverse('toggle_user_active', kwargs={'user_id': self.target_user.id})
+        )
+        self.assertEqual(response.status_code, 405)
+
+    def test_non_staff_cannot_toggle_user_status(self):
+        self.client.logout()
+        self.client.force_login(self.target_user)
+        response = self.client.post(
+            reverse('toggle_user_active', kwargs={'user_id': self.target_user.id}),
+            {'action': 'deactivate'},
+        )
+        self.assertEqual(response.status_code, 302)
+        self.assertIn('/admin/login/', response.url)
+        self.target_user.refresh_from_db()
+        self.assertTrue(self.target_user.is_active)
+
+    def test_staff_can_deactivate_and_activate_user(self):
+        # Deactivate
+        response = self.client.post(
+            reverse('toggle_user_active', kwargs={'user_id': self.target_user.id}),
+            {'action': 'deactivate'},
+            follow=True,
+        )
+        self.assertEqual(response.status_code, 200)
+        self.target_user.refresh_from_db()
+        self.assertFalse(self.target_user.is_active)
+        self.assertContains(response, "deactivated")
+
+        # Activate
+        response = self.client.post(
+            reverse('toggle_user_active', kwargs={'user_id': self.target_user.id}),
+            {'action': 'activate'},
+            follow=True,
+        )
+        self.assertEqual(response.status_code, 200)
+        self.target_user.refresh_from_db()
+        self.assertTrue(self.target_user.is_active)
+        self.assertContains(response, "activated")
+
+    def test_self_deactivation_is_blocked_by_guard(self):
+        response = self.client.post(
+            reverse('toggle_user_active', kwargs={'user_id': self.staff_user.id}),
+            {'action': 'deactivate'},
+            follow=True,
+        )
+        self.assertEqual(response.status_code, 200)
+        self.staff_user.refresh_from_db()
+        self.assertTrue(self.staff_user.is_active)
+        self.assertContains(response, "You cannot deactivate your own account.")
+
+    def test_superuser_deactivation_is_blocked_by_guard(self):
+        response = self.client.post(
+            reverse('toggle_user_active', kwargs={'user_id': self.superuser.id}),
+            {'action': 'deactivate'},
+            follow=True,
+        )
+        self.assertEqual(response.status_code, 200)
+        self.superuser.refresh_from_db()
+        self.assertTrue(self.superuser.is_active)
+        self.assertContains(response, "Superuser accounts cannot be deactivated.")
+
+    def test_deactivated_user_cannot_log_in(self):
+        self.target_user.is_active = False
+        self.target_user.save()
+
+        self.client.logout()
+        response = self.client.post(
+            reverse('login'),
+            {'username': 'john_doe', 'password': 'password123'},
+        )
+        # Login should fail and re-render login form with error
+        self.assertEqual(response.status_code, 200)
+        self.assertFalse(response.context['user'].is_authenticated)
+
+    def test_staff_navbar_contains_user_management_link(self):
+        response = self.client.get(reverse('user_management'))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, reverse('user_management'))
+
+        self.client.logout()
+        self.client.force_login(self.target_user)
+        user_response = self.client.get(reverse('blood_availability'))
+        self.assertNotContains(user_response, reverse('user_management'))
+
+
 

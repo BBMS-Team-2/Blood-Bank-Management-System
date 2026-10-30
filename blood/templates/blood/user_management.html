@@ -1,0 +1,488 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>User Management - Blood Bank Management System</title>
+    <style>
+        :root {
+            --primary: #dc2626;
+            --primary-dark: #991b1b;
+            --background: #f8fafc;
+            --panel: #ffffff;
+            --border: #e2e8f0;
+            --text-dark: #0f172a;
+            --text-muted: #64748b;
+            --success: #16a34a;
+            --success-bg: #dcfce7;
+            --warning: #b45309;
+            --warning-bg: #fef3c7;
+            --danger: #dc2626;
+            --danger-bg: #fee2e2;
+            --info: #1d4ed8;
+            --info-bg: #dbeafe;
+        }
+
+        * { box-sizing: border-box; }
+
+        body {
+            margin: 0;
+            padding: 0;
+            min-height: 100vh;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+            color: var(--text-dark);
+            background: linear-gradient(135deg, #fef2f2 0%, #f8fafc 50%, #eff6ff 100%);
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 30px 20px 50px 20px;
+        }
+
+        .header-panel {
+            background: linear-gradient(135deg, var(--primary-dark) 0%, var(--primary) 100%);
+            color: white;
+            border-radius: 20px;
+            padding: 32px 36px;
+            box-shadow: 0 15px 30px rgba(220, 38, 38, 0.18);
+            margin-bottom: 24px;
+        }
+
+        .header-panel h1 {
+            margin: 0 0 6px;
+            font-size: clamp(1.8rem, 3vw, 2.4rem);
+        }
+
+        .header-panel p {
+            margin: 0;
+            color: #fecaca;
+            font-size: 0.95rem;
+        }
+
+        .search-panel {
+            background: var(--panel);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 18px 24px;
+            margin-bottom: 24px;
+            box-shadow: 0 6px 18px rgba(0, 0, 0, 0.04);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 16px;
+            flex-wrap: wrap;
+        }
+
+        .search-form {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex: 1;
+            max-width: 650px;
+        }
+
+        .search-input {
+            flex: 1;
+            padding: 10px 16px;
+            border: 1.5px solid var(--border);
+            border-radius: 8px;
+            font-size: 0.92rem;
+            outline: none;
+            transition: border-color 0.15s ease;
+        }
+
+        .search-input:focus {
+            border-color: var(--primary);
+        }
+
+        .btn-search {
+            background: var(--primary);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            padding: 10px 18px;
+            font-weight: 700;
+            font-size: 0.88rem;
+            cursor: pointer;
+            transition: background 0.15s ease;
+        }
+
+        .btn-search:hover {
+            background: var(--primary-dark);
+        }
+
+        .btn-clear {
+            text-decoration: none;
+            color: var(--text-muted);
+            border: 1.5px solid var(--border);
+            border-radius: 8px;
+            padding: 9px 14px;
+            font-size: 0.88rem;
+            font-weight: 600;
+            background: white;
+            transition: all 0.15s ease;
+        }
+
+        .btn-clear:hover {
+            border-color: var(--text-muted);
+            color: var(--text-dark);
+        }
+
+        .search-count {
+            color: var(--text-muted);
+            font-size: 0.88rem;
+            font-weight: 600;
+        }
+
+        .card {
+            background: var(--panel);
+            border: 1px solid var(--border);
+            border-radius: 18px;
+            overflow: hidden;
+            box-shadow: 0 6px 18px rgba(0, 0, 0, 0.04);
+        }
+
+        .alert {
+            padding: 12px 16px;
+            margin: 20px 20px 0;
+            border-radius: 10px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            border: 1px solid transparent;
+        }
+
+        .alert-success { background: var(--success-bg); color: var(--success); border-color: #bbf7d0; }
+        .alert-warning { background: var(--warning-bg); color: var(--warning); border-color: #fde68a; }
+        .alert-error { background: var(--danger-bg); color: var(--danger); border-color: #fecaca; }
+        .alert-info { background: var(--info-bg); color: var(--info); border-color: #bfdbfe; }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            text-align: left;
+        }
+
+        th {
+            background: #f8fafc;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.6px;
+            font-size: 0.78rem;
+            padding: 16px 18px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        td {
+            padding: 16px 18px;
+            border-bottom: 1px solid #f1f5f9;
+            font-size: 0.9rem;
+            vertical-align: middle;
+        }
+
+        tr:last-child td { border-bottom: none; }
+        tr:hover td { background: #fafaf9; }
+
+        .badge-blood {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: 2px 7px;
+            border-radius: 6px;
+            background: #fee2e2;
+            color: var(--primary-dark);
+            font-weight: 800;
+            font-size: 0.8rem;
+            border: 1px solid #fca5a5;
+        }
+
+        .badge-role {
+            display: inline-block;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 0.7rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            margin-left: 4px;
+        }
+
+        .badge-staff { background: #fef3c7; color: #92400e; border: 1px solid #fde68a; }
+        .badge-superuser { background: #f3e8ff; color: #6b21a8; border: 1px solid #e9d5ff; }
+
+        .status-pill {
+            display: inline-block;
+            padding: 4px 10px;
+            border-radius: 14px;
+            font-size: 0.75rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.3px;
+        }
+
+        .status-active { background: var(--success-bg); color: var(--success); }
+        .status-inactive { background: var(--danger-bg); color: var(--danger); }
+
+        .profile-info {
+            display: flex;
+            flex-direction: column;
+            gap: 3px;
+            font-size: 0.84rem;
+        }
+
+        .profile-none {
+            color: var(--text-muted);
+            font-size: 0.84rem;
+            font-style: italic;
+        }
+
+        .action-form {
+            display: inline-block;
+            margin: 0;
+        }
+
+        .btn-toggle {
+            border: none;
+            border-radius: 6px;
+            padding: 6px 12px;
+            font-weight: 700;
+            font-size: 0.78rem;
+            cursor: pointer;
+            transition: all 0.15s ease;
+        }
+
+        .btn-deactivate {
+            background: #fee2e2;
+            color: var(--danger);
+            border: 1px solid #fca5a5;
+        }
+
+        .btn-deactivate:hover {
+            background: var(--danger);
+            color: white;
+        }
+
+        .btn-activate {
+            background: #dcfce7;
+            color: var(--success);
+            border: 1px solid #86efac;
+        }
+
+        .btn-activate:hover {
+            background: var(--success);
+            color: white;
+        }
+
+        .btn-disabled-guard {
+            display: inline-block;
+            padding: 6px 10px;
+            border-radius: 6px;
+            background: #f1f5f9;
+            color: #94a3b8;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+
+        .pagination-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 12px;
+            padding: 20px;
+            border-top: 1px solid var(--border);
+            font-size: 0.88rem;
+        }
+
+        .page-link {
+            text-decoration: none;
+            padding: 6px 12px;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            color: var(--text-dark);
+            font-weight: 600;
+        }
+
+        .page-link:hover {
+            border-color: var(--primary);
+            color: var(--primary);
+        }
+
+        .empty-state {
+            padding: 60px 20px;
+            text-align: center;
+            color: var(--text-muted);
+        }
+
+        .empty-state h3 {
+            margin: 0 0 8px;
+            font-size: 1.25rem;
+            color: var(--text-dark);
+        }
+
+        @media (max-width: 900px) {
+            .card { overflow-x: auto; }
+            table { min-width: 900px; }
+        }
+    </style>
+</head>
+<body>
+    {% include "blood/navbar.html" %}
+
+    <div class="container">
+        <header class="header-panel">
+            <div>
+                <h1>User Management</h1>
+                <p>Manage registered accounts and view associated donor and patient profile records.</p>
+            </div>
+        </header>
+
+        <!-- Search Bar -->
+        <section class="search-panel">
+            <form method="get" action="{% url 'user_management' %}" class="search-form">
+                <input
+                    type="text"
+                    name="q"
+                    class="search-input"
+                    placeholder="Search by username, email, name, phone, or blood group..."
+                    value="{{ search_query }}"
+                >
+                <button type="submit" class="btn-search">Search</button>
+                {% if search_query %}
+                    <a href="{% url 'user_management' %}" class="btn-clear">Clear</a>
+                {% endif %}
+            </form>
+            <div class="search-count">
+                {{ total_users }} registered user{{ total_users|pluralize }}
+                {% if search_query %}found{% endif %}
+            </div>
+        </section>
+
+        <!-- Main User List Card -->
+        <main class="card">
+            {% if messages %}
+                {% for message in messages %}
+                    <div class="alert alert-{{ message.tags|default:'info' }}" role="status">{{ message }}</div>
+                {% endfor %}
+            {% endif %}
+
+            {% if users %}
+                <table>
+                    <thead>
+                        <tr>
+                            <th>User</th>
+                            <th>Email</th>
+                            <th>Donor Profile</th>
+                            <th>Patient Profile</th>
+                            <th>Status</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for u in users %}
+                            <tr>
+                                <td>
+                                    <strong>{{ u.username }}</strong>
+                                    {% if u.is_superuser %}
+                                        <span class="badge-role badge-superuser">Superuser</span>
+                                    {% elif u.is_staff %}
+                                        <span class="badge-role badge-staff">Staff</span>
+                                    {% endif %}
+                                    <div style="font-size: 0.78rem; color: var(--text-muted); margin-top: 2px;">
+                                        Joined {{ u.date_joined|date:"M d, Y" }}
+                                    </div>
+                                </td>
+                                <td>{{ u.email|default:"-" }}</td>
+                                <td>
+                                    {% if u.donor_profile %}
+                                        <div class="profile-info">
+                                            <span>
+                                                Blood Group:
+                                                {% if u.donor_profile.blood_group %}
+                                                    <span class="badge-blood">{{ u.donor_profile.blood_group }}</span>
+                                                {% else %}
+                                                    -
+                                                {% endif %}
+                                            </span>
+                                            {% if u.donor_profile.contact_phone %}
+                                                <span>Phone: {{ u.donor_profile.contact_phone }}</span>
+                                            {% endif %}
+                                            {% if u.donor_profile.age %}
+                                                <span>Age: {{ u.donor_profile.age }}</span>
+                                            {% endif %}
+                                        </div>
+                                    {% else %}
+                                        <span class="profile-none">No donor profile</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if u.patient_profile %}
+                                        <div class="profile-info">
+                                            <span>
+                                                Blood Group:
+                                                {% if u.patient_profile.blood_group %}
+                                                    <span class="badge-blood">{{ u.patient_profile.blood_group }}</span>
+                                                {% else %}
+                                                    -
+                                                {% endif %}
+                                            </span>
+                                            {% if u.patient_profile.contact_phone %}
+                                                <span>Phone: {{ u.patient_profile.contact_phone }}</span>
+                                            {% endif %}
+                                            {% if u.patient_profile.disease %}
+                                                <span>Condition: {{ u.patient_profile.disease }}</span>
+                                            {% endif %}
+                                        </div>
+                                    {% else %}
+                                        <span class="profile-none">No patient profile</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if u.is_active %}
+                                        <span class="status-pill status-active">Active</span>
+                                    {% else %}
+                                        <span class="status-pill status-inactive">Inactive</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if u.id == request.user.id %}
+                                        <span class="btn-disabled-guard" title="You cannot deactivate your own account">Current User</span>
+                                    {% elif u.is_superuser %}
+                                        <span class="btn-disabled-guard" title="Superuser accounts cannot be deactivated">Protected</span>
+                                    {% else %}
+                                        <form method="post" action="{% url 'toggle_user_active' u.id %}" class="action-form">
+                                            {% csrf_token %}
+                                            {% if u.is_active %}
+                                                <input type="hidden" name="action" value="deactivate">
+                                                <button type="submit" class="btn-toggle btn-deactivate">Deactivate</button>
+                                            {% else %}
+                                                <input type="hidden" name="action" value="activate">
+                                                <button type="submit" class="btn-toggle btn-activate">Activate</button>
+                                            {% endif %}
+                                        </form>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+
+                {% if page_obj.has_other_pages %}
+                    <div class="pagination-container">
+                        {% if page_obj.has_previous %}
+                            <a href="?page={{ page_obj.previous_page_number }}{% if search_query %}&q={{ search_query }}{% endif %}" class="page-link">&laquo; Previous</a>
+                        {% endif %}
+                        <span>Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
+                        {% if page_obj.has_next %}
+                            <a href="?page={{ page_obj.next_page_number }}{% if search_query %}&q={{ search_query }}{% endif %}" class="page-link">Next &raquo;</a>
+                        {% endif %}
+                    </div>
+                {% endif %}
+            {% else %}
+                <div class="empty-state">
+                    <h3>No Users Found</h3>
+                    <p>No registered user records match your criteria.</p>
+                </div>
+            {% endif %}
+        </main>
+    </div>
+</body>
+</html>

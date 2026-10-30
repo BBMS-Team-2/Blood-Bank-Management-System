@@ -1,0 +1,439 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Administrator Dashboard - Blood Bank Management System</title>
+    <style>
+        :root {
+            --primary: #dc2626;
+            --primary-dark: #991b1b;
+            --background: #f8fafc;
+            --panel: #ffffff;
+            --border: #e2e8f0;
+            --text-dark: #0f172a;
+            --text-muted: #64748b;
+            --success: #16a34a;
+            --success-bg: #dcfce7;
+            --warning: #b45309;
+            --warning-bg: #fef3c7;
+            --danger: #dc2626;
+            --danger-bg: #fee2e2;
+            --info: #1d4ed8;
+            --info-bg: #dbeafe;
+        }
+
+        * { box-sizing: border-box; }
+
+        body {
+            margin: 0;
+            padding: 0;
+            min-height: 100vh;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+            color: var(--text-dark);
+            background: linear-gradient(135deg, #fef2f2 0%, #f8fafc 50%, #eff6ff 100%);
+        }
+
+        .container {
+            max-width: 1180px;
+            margin: 0 auto;
+            padding: 30px 20px 50px 20px;
+        }
+
+        .header-panel {
+            background: linear-gradient(135deg, var(--primary-dark) 0%, var(--primary) 100%);
+            color: white;
+            border-radius: 20px;
+            padding: 32px 36px;
+            box-shadow: 0 15px 30px rgba(220, 38, 38, 0.18);
+            margin-bottom: 24px;
+        }
+
+        .header-panel h1 {
+            margin: 0 0 6px;
+            font-size: clamp(1.8rem, 3vw, 2.4rem);
+        }
+
+        .header-panel p {
+            margin: 0;
+            color: #fecaca;
+            font-size: 0.95rem;
+        }
+
+        .alert {
+            padding: 12px 16px;
+            margin-bottom: 24px;
+            border-radius: 10px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            border: 1px solid transparent;
+        }
+
+        .alert-success { background: var(--success-bg); color: var(--success); border-color: #bbf7d0; }
+        .alert-warning { background: var(--warning-bg); color: var(--warning); border-color: #fde68a; }
+        .alert-error { background: var(--danger-bg); color: var(--danger); border-color: #fecaca; }
+        .alert-info { background: var(--info-bg); color: var(--info); border-color: #bfdbfe; }
+
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+            gap: 20px;
+            margin-bottom: 28px;
+        }
+
+        .stat-card {
+            background: var(--panel);
+            border: 1px solid var(--border);
+            border-radius: 18px;
+            padding: 24px;
+            box-shadow: 0 6px 18px rgba(0, 0, 0, 0.04);
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+
+        .stat-card .label {
+            color: var(--text-muted);
+            font-size: 0.85rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 8px;
+        }
+
+        .stat-card .value {
+            font-size: 2.2rem;
+            font-weight: 800;
+            color: var(--text-dark);
+            line-height: 1.1;
+        }
+
+        .stat-card .desc {
+            font-size: 0.82rem;
+            color: var(--text-muted);
+            margin-top: 8px;
+        }
+
+        .section-cards {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
+            gap: 24px;
+            margin-bottom: 28px;
+        }
+
+        .card {
+            background: var(--panel);
+            border: 1px solid var(--border);
+            border-radius: 18px;
+            overflow: hidden;
+            box-shadow: 0 6px 18px rgba(0, 0, 0, 0.04);
+        }
+
+        .card-header {
+            padding: 20px 24px;
+            border-bottom: 1px solid var(--border);
+            background: #fafaf9;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .card-header h2 {
+            margin: 0;
+            font-size: 1.15rem;
+            font-weight: 700;
+            color: var(--text-dark);
+        }
+
+        .card-body {
+            padding: 24px;
+        }
+
+        .status-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 0;
+            border-bottom: 1px solid #f1f5f9;
+        }
+
+        .status-row:last-child {
+            border-bottom: none;
+            padding-bottom: 0;
+            font-weight: 700;
+        }
+
+        .status-pill {
+            display: inline-block;
+            padding: 4px 10px;
+            border-radius: 14px;
+            font-size: 0.75rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.3px;
+        }
+
+        .status-Pending { background: var(--warning-bg); color: var(--warning); }
+        .status-Approved { background: var(--success-bg); color: var(--success); }
+        .status-Rejected { background: var(--danger-bg); color: var(--danger); }
+        .status-Total { background: var(--info-bg); color: var(--info); }
+
+        .status-num {
+            font-size: 1.1rem;
+            font-weight: 800;
+            color: var(--text-dark);
+        }
+
+        .stock-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
+            gap: 12px;
+            margin-bottom: 16px;
+        }
+
+        .stock-item {
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 14px 10px;
+            text-align: center;
+            background: #f8fafc;
+        }
+
+        .badge-blood {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            background: #fee2e2;
+            color: var(--primary-dark);
+            font-weight: 800;
+            font-size: 0.88rem;
+            border: 1.5px solid #fca5a5;
+            margin-bottom: 8px;
+        }
+
+        .stock-count {
+            font-size: 1.25rem;
+            font-weight: 800;
+            color: var(--text-dark);
+        }
+
+        .stock-unit-label {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+        }
+
+        .action-bar {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-top: 18px;
+            padding-top: 16px;
+            border-top: 1px solid var(--border);
+        }
+
+        .action-link {
+            text-decoration: none;
+            padding: 8px 14px;
+            border-radius: 8px;
+            font-weight: 700;
+            font-size: 0.84rem;
+            color: #ffffff;
+            background: var(--primary);
+            transition: all 0.15s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .action-link:hover {
+            background: var(--primary-dark);
+        }
+
+        .action-link-outline {
+            text-decoration: none;
+            padding: 8px 14px;
+            border-radius: 8px;
+            font-weight: 700;
+            font-size: 0.84rem;
+            color: var(--text-dark);
+            background: #ffffff;
+            border: 1.5px solid var(--border);
+            transition: all 0.15s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .action-link-outline:hover {
+            border-color: var(--primary);
+            color: var(--primary);
+            background: #fff5f5;
+        }
+
+        .quick-nav-panel {
+            background: var(--panel);
+            border: 1px solid var(--border);
+            border-radius: 18px;
+            padding: 24px;
+            box-shadow: 0 6px 18px rgba(0, 0, 0, 0.04);
+            margin-top: 24px;
+        }
+
+        .quick-nav-panel h2 {
+            margin: 0 0 16px;
+            font-size: 1.15rem;
+            color: var(--text-dark);
+        }
+
+        .quick-links {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+    </style>
+</head>
+<body>
+    {% include "blood/navbar.html" %}
+
+    <div class="container">
+        <header class="header-panel">
+            <div>
+                <h1>Administrator Dashboard</h1>
+                <p>System overview of donors, patients, request workflows, donation reviews, and inventory stock.</p>
+            </div>
+        </header>
+
+        {% if messages %}
+            {% for message in messages %}
+                <div class="alert alert-{{ message.tags|default:'info' }}" role="status">{{ message }}</div>
+            {% endfor %}
+        {% endif %}
+
+        <!-- High-level stat cards -->
+        <section class="dashboard-grid">
+            <div class="stat-card">
+                <span class="label">Registered Donors</span>
+                <span class="value">{{ donor_count }}</span>
+                <span class="desc">Active DonorProfile records</span>
+            </div>
+            <div class="stat-card">
+                <span class="label">Registered Patients</span>
+                <span class="value">{{ patient_count }}</span>
+                <span class="desc">Active PatientProfile records</span>
+            </div>
+            <div class="stat-card">
+                <span class="label">Total Units in Stock</span>
+                <span class="value">{{ total_stock_units }}</span>
+                <span class="desc">Across all 8 blood groups</span>
+            </div>
+            <div class="stat-card">
+                <span class="label">Pending Action</span>
+                <span class="value">{{ request_counts.pending|add:donation_counts.pending }}</span>
+                <span class="desc">{{ request_counts.pending }} request{{ request_counts.pending|pluralize }}, {{ donation_counts.pending }} donation{{ donation_counts.pending|pluralize }}</span>
+            </div>
+        </section>
+
+        <!-- Detailed breakdown sections -->
+        <div class="section-cards">
+            <!-- Blood Requests by Status -->
+            <section class="card">
+                <div class="card-header">
+                    <h2>Blood Requests</h2>
+                    <span class="status-pill status-Total">{{ request_counts.total }} Total</span>
+                </div>
+                <div class="card-body">
+                    <div class="status-row">
+                        <span><span class="status-pill status-Pending">Pending</span> Awaiting Review</span>
+                        <span class="status-num">{{ request_counts.pending }}</span>
+                    </div>
+                    <div class="status-row">
+                        <span><span class="status-pill status-Approved">Approved</span> Fulfilled</span>
+                        <span class="status-num">{{ request_counts.approved }}</span>
+                    </div>
+                    <div class="status-row">
+                        <span><span class="status-pill status-Rejected">Rejected</span> Declined</span>
+                        <span class="status-num">{{ request_counts.rejected }}</span>
+                    </div>
+                    <div class="status-row">
+                        <span>All Blood Requests</span>
+                        <span class="status-num">{{ request_counts.total }}</span>
+                    </div>
+
+                    <div class="action-bar">
+                        <a href="{% url 'manage_blood_requests' %}" class="action-link">Review Requests &rarr;</a>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Donations by Status -->
+            <section class="card">
+                <div class="card-header">
+                    <h2>Donations</h2>
+                    <span class="status-pill status-Total">{{ donation_counts.total }} Total</span>
+                </div>
+                <div class="card-body">
+                    <div class="status-row">
+                        <span><span class="status-pill status-Pending">Pending</span> Awaiting Review</span>
+                        <span class="status-num">{{ donation_counts.pending }}</span>
+                    </div>
+                    <div class="status-row">
+                        <span><span class="status-pill status-Approved">Approved</span> Added to Stock</span>
+                        <span class="status-num">{{ donation_counts.approved }}</span>
+                    </div>
+                    <div class="status-row">
+                        <span><span class="status-pill status-Rejected">Rejected</span> Declined</span>
+                        <span class="status-num">{{ donation_counts.rejected }}</span>
+                    </div>
+                    <div class="status-row">
+                        <span>All Donations</span>
+                        <span class="status-num">{{ donation_counts.total }}</span>
+                    </div>
+
+                    <div class="action-bar">
+                        <a href="{% url 'manage_donations' %}" class="action-link">Review Donations &rarr;</a>
+                    </div>
+                </div>
+            </section>
+        </div>
+
+        <!-- Inventory Stock by Blood Group -->
+        <section class="card">
+            <div class="card-header">
+                <h2>Blood Stock by Blood Group</h2>
+                <span class="status-pill status-Total">{{ total_stock_units }} Units Total</span>
+            </div>
+            <div class="card-body">
+                <div class="stock-grid">
+                    {% for item in stock_by_group %}
+                        <div class="stock-item">
+                            <span class="badge-blood">{{ item.blood_group }}</span>
+                            <div class="stock-count">{{ item.units }}</div>
+                            <span class="stock-unit-label">unit{{ item.units|pluralize }}</span>
+                        </div>
+                    {% endfor %}
+                </div>
+
+                <div class="action-bar">
+                    <a href="{% url 'update_inventory' %}" class="action-link">Update Inventory &rarr;</a>
+                    <a href="{% url 'blood_availability' %}" class="action-link-outline">View Availability &rarr;</a>
+                </div>
+            </div>
+        </section>
+
+        <!-- Quick Staff Navigation -->
+        <nav class="quick-nav-panel">
+            <h2>Administrative Operations</h2>
+            <div class="quick-links">
+                <a href="{% url 'manage_donations' %}" class="action-link-outline">Review Donations</a>
+                <a href="{% url 'manage_blood_requests' %}" class="action-link-outline">Review Blood Requests</a>
+                <a href="{% url 'update_inventory' %}" class="action-link-outline">Update Inventory Stock</a>
+                <a href="{% url 'blood_availability' %}" class="action-link-outline">Public Blood Availability</a>
+                <a href="/admin/" class="action-link-outline" target="_blank">Django Admin Panel</a>
+            </div>
+        </nav>
+    </div>
+</body>
+</html>

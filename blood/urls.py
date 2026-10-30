@@ -85,4 +85,19 @@ urlpatterns = [
         views.update_inventory,
         name='update_inventory'
     ),
+    path(
+        'staff/dashboard/',
+        views.admin_dashboard,
+        name='admin_dashboard'
+    ),
+    path(
+        'staff/users/',
+        views.user_management,
+        name='user_management'
+    ),
+    path(
+        'staff/users/<int:user_id>/toggle-active/',
+        views.toggle_user_active,
+        name='toggle_user_active'
+    ),
 ]

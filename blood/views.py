@@ -3,8 +3,9 @@ from django.contrib.admin.views.decorators import staff_member_required
 from django.contrib.auth import authenticate, login as auth_login, logout as auth_logout
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.forms import AuthenticationForm
+from django.contrib.auth.models import User
 from django.core.paginator import Paginator
-from django.db.models import Min
+from django.db.models import Min, Count, Sum, Q
 from django.shortcuts import render, redirect
 from django.views.decorators.http import require_POST
 
@@ -12,7 +13,7 @@ from .forms import DonationForm, BloodRequestForm, PatientProfileForm, DonorProf
 from .models import Donation, BloodInventory, BloodRequest, PatientProfile, DonorProfile
 from .services import review_donation as process_donation_review
 from .services import review_blood_request as process_blood_request_review
-from .services import update_inventory_stock
+from .services import update_inventory_stock, set_user_active_status
 
 
 @login_required
@@ -388,3 +389,134 @@ def update_inventory(request):
             'inventory_records': inventory_records,
         }
     )
+
+
+@staff_member_required
+def admin_dashboard(request):
+    """
+    BB-F-016: Administrator Dashboard (TC-ADM-01, BB-SR-003)
+    Staff-only dashboard providing high-level operational metrics:
+    - Registered donors and patients counts
+    - Blood requests by status (Pending, Approved, Rejected)
+    - Donations by status (Pending, Approved, Rejected)
+    - Current inventory stock by blood group and total available units
+    - Direct navigation links to administrative review and inventory workflows
+
+    Donor and patient counts:
+    Donors are counted as registered users with an associated DonorProfile
+    (DonorProfile.objects.count()). Patients are counted as registered users
+    with an associated PatientProfile (PatientProfile.objects.count()).
+    Because every account may use both donor and patient functions without a
+    mutually exclusive role field, counts reflect active profile registrations.
+    """
+    donor_count = DonorProfile.objects.count()
+    patient_count = PatientProfile.objects.count()
+
+    request_aggregates = BloodRequest.objects.aggregate(
+        total=Count('id'),
+        pending=Count('id', filter=Q(status='Pending')),
+        approved=Count('id', filter=Q(status='Approved')),
+        rejected=Count('id', filter=Q(status='Rejected')),
+    )
+
+    donation_aggregates = Donation.objects.aggregate(
+        total=Count('id'),
+        pending=Count('id', filter=Q(status='Pending')),
+        approved=Count('id', filter=Q(status='Approved')),
+        rejected=Count('id', filter=Q(status='Rejected')),
+    )
+
+    inventory_records = {
+        item['blood_group']: item['units']
+        for item in BloodInventory.objects.values('blood_group', 'units')
+    }
+
+    stock_by_group = []
+    for group, _ in Donation.BLOOD_GROUPS:
+        stock_by_group.append({
+            'blood_group': group,
+            'units': inventory_records.get(group, 0),
+        })
+
+    total_stock_units = BloodInventory.objects.aggregate(total=Sum('units'))['total'] or 0
+
+    return render(
+        request,
+        'blood/admin_dashboard.html',
+        {
+            'donor_count': donor_count,
+            'patient_count': patient_count,
+            'request_counts': request_aggregates,
+            'donation_counts': donation_aggregates,
+            'stock_by_group': stock_by_group,
+            'total_stock_units': total_stock_units,
+        }
+    )
+
+
+@staff_member_required
+def user_management(request):
+    """
+    BB-F-017: User Management (TC-ADM-02, BB-SR-003)
+    Staff-only view to list and search registered users along with their
+    donor and patient profile details.
+    """
+    search_query = request.GET.get('q', '').strip()
+    users_qs = User.objects.select_related(
+        'donor_profile', 'patient_profile'
+    ).order_by('-date_joined')
+
+    if search_query:
+        users_qs = users_qs.filter(
+            Q(username__icontains=search_query) |
+            Q(email__icontains=search_query) |
+            Q(first_name__icontains=search_query) |
+            Q(last_name__icontains=search_query) |
+            Q(donor_profile__blood_group__icontains=search_query) |
+            Q(donor_profile__contact_phone__icontains=search_query) |
+            Q(patient_profile__blood_group__icontains=search_query) |
+            Q(patient_profile__contact_phone__icontains=search_query)
+        ).distinct()
+
+    paginator = Paginator(users_qs, 25)
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+
+    return render(
+        request,
+        'blood/user_management.html',
+        {
+            'page_obj': page_obj,
+            'users': page_obj,
+            'search_query': search_query,
+            'total_users': paginator.count,
+        }
+    )
+
+
+@staff_member_required
+@require_POST
+def toggle_user_active(request, user_id):
+    """
+    BB-F-017: User Management (TC-ADM-02, BB-SR-003)
+    Staff-only POST action to activate or deactivate a registered user account.
+    Enforces self and superuser deactivation guards and reports status via messages.
+    """
+    action = request.POST.get('action')
+    desired_active = None
+    if action == 'activate':
+        desired_active = True
+    elif action == 'deactivate':
+        desired_active = False
+
+    try:
+        target_user = set_user_active_status(user_id, request.user, is_active=desired_active)
+        status_label = "activated" if target_user.is_active else "deactivated"
+        messages.success(request, f"User '{target_user.username}' has been successfully {status_label}.")
+    except (ValueError, PermissionError) as exc:
+        messages.error(request, str(exc))
+
+    return redirect('user_management')
+
+
+

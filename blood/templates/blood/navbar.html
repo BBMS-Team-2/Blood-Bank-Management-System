@@ -178,6 +178,8 @@
 
                 {% if user.is_staff %}
                     <span class="bbms-nav-separator"></span>
+                    <a href="{% url 'admin_dashboard' %}" class="bbms-nav-link">Dashboard</a>
+                    <a href="{% url 'user_management' %}" class="bbms-nav-link">User Management</a>
                     <a href="{% url 'manage_donations' %}" class="bbms-nav-link">Review Donations</a>
                     <a href="{% url 'manage_blood_requests' %}" class="bbms-nav-link">Review Requests</a>
                     <a href="{% url 'update_inventory' %}" class="bbms-nav-link">Update Inventory</a>
