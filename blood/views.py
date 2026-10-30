@@ -29,8 +29,13 @@ def submit_donation(request):
             return redirect('submit_donation')
     else:
         initial = {}
-        if request.GET.get('blood_group'):
-            initial['blood_group'] = request.GET.get('blood_group')
+        blood_group_param = request.GET.get('blood_group', '').strip()
+        if blood_group_param:
+            valid_groups = dict(Donation.BLOOD_GROUPS)
+            if blood_group_param not in valid_groups and f"{blood_group_param}+" in valid_groups:
+                blood_group_param = f"{blood_group_param}+"
+            if blood_group_param in valid_groups:
+                initial['blood_group'] = blood_group_param
         form = DonationForm(initial=initial)
 
     return render(
@@ -54,8 +59,13 @@ def submit_blood_request(request):
             return redirect('submit_blood_request')
     else:
         initial = {}
-        if request.GET.get('blood_group'):
-            initial['blood_group'] = request.GET.get('blood_group')
+        blood_group_param = request.GET.get('blood_group', '').strip()
+        if blood_group_param:
+            valid_groups = dict(Donation.BLOOD_GROUPS)
+            if blood_group_param not in valid_groups and f"{blood_group_param}+" in valid_groups:
+                blood_group_param = f"{blood_group_param}+"
+            if blood_group_param in valid_groups:
+                initial['blood_group'] = blood_group_param
         form = BloodRequestForm(initial=initial)
 
     return render(

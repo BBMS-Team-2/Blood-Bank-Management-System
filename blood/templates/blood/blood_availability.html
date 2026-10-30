@@ -20,6 +20,8 @@
             --warning-bg: #fef3c7;
             --danger: #dc2626;
             --danger-bg: #fee2e2;
+            --info: #0284c7;
+            --info-bg: #e0f2fe;
         }
 
         * {
@@ -34,13 +36,13 @@
             color: var(--text-dark);
             min-height: 100vh;
             margin: 0;
-    padding: 0;
+            padding: 0;
         }
 
         .container {
-            max-width: 1000px;
+            max-width: 1100px;
             margin: 0 auto;
-    padding: 30px 20px 50px 20px;
+            padding: 30px 20px 50px 20px;
         }
 
         .header-panel {
@@ -49,7 +51,7 @@
             border-radius: 20px;
             padding: 36px 40px;
             box-shadow: 0 15px 30px rgba(220, 38, 38, 0.18);
-            margin-bottom: 30px;
+            margin-bottom: 24px;
             display: flex;
             justify-content: space-between;
             align-items: center;
@@ -92,6 +94,114 @@
             margin-top: 4px;
         }
 
+        /* Metrics summary grid */
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+
+        .metric-card {
+            background: var(--panel);
+            border: 1px solid var(--border);
+            border-radius: 14px;
+            padding: 16px 20px;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.03);
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .metric-val {
+            font-size: 1.8rem;
+            font-weight: 800;
+            line-height: 1.1;
+        }
+
+        .metric-title {
+            font-size: 0.82rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            font-weight: 600;
+        }
+
+        .text-primary { color: var(--primary); }
+        .text-success { color: var(--success); }
+        .text-warning { color: var(--warning); }
+        .text-danger { color: var(--danger); }
+
+        /* Toolbar and search */
+        .toolbar-panel {
+            background: var(--panel);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 16px 20px;
+            margin-bottom: 24px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+            display: flex;
+            flex-wrap: wrap;
+            gap: 16px;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .search-box {
+            flex: 1;
+            min-width: 240px;
+        }
+
+        .search-box input {
+            width: 100%;
+            padding: 10px 16px;
+            border-radius: 10px;
+            border: 1px solid var(--border);
+            font-size: 0.92rem;
+            outline: none;
+            transition: border-color 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .search-box input:focus {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.15);
+        }
+
+        .filter-pills {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .filter-btn {
+            background: #f1f5f9;
+            color: var(--text-muted);
+            border: 1px solid var(--border);
+            padding: 8px 14px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .filter-btn:hover {
+            background: #e2e8f0;
+            color: var(--text-dark);
+        }
+
+        .filter-btn.active {
+            background: var(--primary);
+            color: #ffffff;
+            border-color: var(--primary);
+        }
+
+        .filter-btn.print-btn {
+            background: #ffffff;
+            color: var(--text-dark);
+            border: 1px solid var(--border);
+        }
+
         .nav-links {
             display: flex;
             gap: 12px;
@@ -120,7 +230,7 @@
 
         .card-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+            grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
             gap: 20px;
             margin-bottom: 30px;
         }
@@ -128,7 +238,7 @@
         .blood-card {
             background: var(--panel);
             border-radius: 18px;
-            padding: 24px;
+            padding: 24px 20px;
             border: 1px solid var(--border);
             box-shadow: 0 4px 12px rgba(0, 0, 0, 0.04);
             display: flex;
@@ -155,7 +265,7 @@
             justify-content: center;
             font-size: 1.6rem;
             font-weight: 800;
-            margin-bottom: 16px;
+            margin-bottom: 14px;
             border: 2px solid #f87171;
         }
 
@@ -170,17 +280,18 @@
         .units-label {
             font-size: 0.85rem;
             color: var(--text-muted);
-            margin-bottom: 16px;
+            margin-bottom: 12px;
         }
 
         .status-badge {
             display: inline-block;
-            padding: 6px 14px;
+            padding: 5px 12px;
             border-radius: 20px;
-            font-size: 0.78rem;
+            font-size: 0.76rem;
             font-weight: 700;
             text-transform: uppercase;
             letter-spacing: 0.5px;
+            margin-bottom: 10px;
         }
 
         .status-success {
@@ -198,6 +309,99 @@
             color: var(--danger);
         }
 
+        /* Stock progress gauge bar */
+        .gauge-bar-wrapper {
+            width: 100%;
+            height: 6px;
+            background: #f1f5f9;
+            border-radius: 3px;
+            overflow: hidden;
+            margin-bottom: 12px;
+        }
+
+        .gauge-bar {
+            height: 100%;
+            border-radius: 3px;
+            transition: width 0.4s ease;
+        }
+
+        .gauge-success { background: var(--success); }
+        .gauge-warning { background: var(--warning); }
+        .gauge-danger { background: var(--danger); }
+
+        /* Clinical compatibility badge */
+        .compatibility-badge {
+            font-size: 0.74rem;
+            font-weight: 700;
+            padding: 4px 10px;
+            border-radius: 8px;
+            margin-bottom: 10px;
+            line-height: 1.2;
+        }
+
+        .badge-primary { background: #fee2e2; color: #991b1b; }
+        .badge-info { background: var(--info-bg); color: var(--info); }
+        .badge-success { background: var(--success-bg); color: var(--success); }
+        .badge-secondary { background: #f1f5f9; color: var(--text-muted); }
+
+        .compat-details {
+            width: 100%;
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 10px;
+            padding: 10px;
+            margin-top: 8px;
+            text-align: left;
+            font-size: 0.76rem;
+            color: var(--text-dark);
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .compat-details strong {
+            color: var(--text-muted);
+        }
+
+        /* Direct Quick-Action Links */
+        .card-actions {
+            display: flex;
+            gap: 8px;
+            width: 100%;
+            margin-top: 14px;
+        }
+
+        .action-btn {
+            flex: 1;
+            text-decoration: none;
+            padding: 7px 0;
+            border-radius: 8px;
+            font-size: 0.8rem;
+            font-weight: 700;
+            text-align: center;
+            transition: background 0.2s ease;
+        }
+
+        .action-request {
+            background: #fee2e2;
+            color: var(--primary-dark);
+            border: 1px solid #fecaca;
+        }
+
+        .action-request:hover {
+            background: #fecaca;
+        }
+
+        .action-donate {
+            background: #f1f5f9;
+            color: var(--text-dark);
+            border: 1px solid #e2e8f0;
+        }
+
+        .action-donate:hover {
+            background: #e2e8f0;
+        }
+
         .footer-note {
             background: #ffffff;
             border: 1px solid var(--border);
@@ -206,6 +410,28 @@
             color: var(--text-muted);
             font-size: 0.88rem;
             text-align: center;
+        }
+
+        @media print {
+            body {
+                background: #ffffff;
+            }
+            .header-panel, .nav-links, .toolbar-panel, .card-actions, .navbar {
+                display: none !important;
+            }
+            .container {
+                max-width: 100%;
+                padding: 0;
+            }
+            .card-grid {
+                grid-template-columns: repeat(4, 1fr);
+                gap: 12px;
+            }
+            .blood-card {
+                box-shadow: none;
+                border: 1px solid #ccc;
+                page-break-inside: avoid;
+            }
         }
 
         @media (max-width: 640px) {
@@ -218,6 +444,10 @@
                 text-align: left;
                 width: 100%;
             }
+            .toolbar-panel {
+                flex-direction: column;
+                align-items: stretch;
+            }
         }
     </style>
 </head>
@@ -227,7 +457,7 @@
         <header class="header-panel">
             <div class="header-title">
                 <h1>Blood Availability</h1>
-                <p>Live inventory status by blood group in the blood bank</p>
+                <p>Live inventory status and compatibility matrix in the blood bank</p>
             </div>
             <div class="summary-pill">
                 <div class="count">{{ total_units }}</div>
@@ -235,24 +465,82 @@
             </div>
         </header>
 
+        <!-- Summary Metrics Row -->
+        <div class="metrics-grid">
+            <div class="metric-card">
+                <div class="metric-val text-primary">{{ total_units }}</div>
+                <div class="metric-title">Total Units in Stock</div>
+            </div>
+            <div class="metric-card">
+                <div class="metric-val text-success">{{ available_count }}</div>
+                <div class="metric-title">Adequate Stock Groups</div>
+            </div>
+            <div class="metric-card">
+                <div class="metric-val text-warning">{{ low_stock_count }}</div>
+                <div class="metric-title">Low Stock Groups</div>
+            </div>
+            <div class="metric-card">
+                <div class="metric-val text-danger">{{ out_of_stock_count }}</div>
+                <div class="metric-title">Critical / Depleted</div>
+            </div>
+        </div>
+
+        <!-- Filter & Search Toolbar -->
+        <div class="toolbar-panel">
+            <div class="search-box">
+                <input type="text" id="bloodSearchInput" placeholder="Filter by blood group (e.g. O-, A+)..." aria-label="Search blood group">
+            </div>
+            <div class="filter-pills">
+                <button type="button" class="filter-btn active" data-filter="all">All (8)</button>
+                <button type="button" class="filter-btn" data-filter="Available">Available ({{ available_count }})</button>
+                <button type="button" class="filter-btn" data-filter="Low Stock">Low Stock ({{ low_stock_count }})</button>
+                <button type="button" class="filter-btn" data-filter="Out of Stock">Critical ({{ out_of_stock_count }})</button>
+                <button type="button" class="filter-btn print-btn" onclick="window.print()">Print Report</button>
+            </div>
+        </div>
+
         <nav class="nav-links">
             <a href="{% url 'submit_blood_request' %}">Request Blood</a>
             <a href="{% url 'submit_donation' %}">Donate Blood</a>
         </nav>
 
         <main>
-            <div class="card-grid">
+            <div class="card-grid" id="bloodCardsGrid">
                 {% for item in blood_groups %}
-                    <div class="blood-card" id="card-{{ item.blood_group }}">
+                    <div class="blood-card" id="card-{{ item.blood_group }}" data-group="{{ item.blood_group }}" data-status="{{ item.status }}">
                         <div class="blood-group-badge">{{ item.blood_group }}</div>
                         <div class="units-count">{{ item.units }}</div>
                         <div class="units-label">Units Available</div>
                         <span class="status-badge status-{{ item.status_class }}">{{ item.status }}</span>
+
+                        <!-- Stock Level Gauge Bar -->
+                        <div class="gauge-bar-wrapper" title="Stock Capacity Level">
+                            <div class="gauge-bar gauge-{{ item.status_class }}" style="width: {{ item.capacity_percentage }}%;"></div>
+                        </div>
+
+                        {% if item.compatibility.badge %}
+                            <div class="compatibility-badge {{ item.compatibility.badge_class }}">
+                                {{ item.compatibility.badge }}
+                            </div>
+                        {% endif %}
+
                         {% if item.expiry_date %}
-                            <div class="expiry-info" style="margin-top: 10px; font-size: 0.8rem; color: var(--text-muted);">
+                            <div class="expiry-info" style="margin-top: 8px; font-size: 0.8rem; color: var(--text-muted);">
                                 Earliest Expiry: <strong>{{ item.expiry_date|date:"Y-m-d" }}</strong>
                             </div>
                         {% endif %}
+
+                        <!-- Compatibility details -->
+                        <div class="compat-details">
+                            <small><strong>Can donate to:</strong> {{ item.compatibility.can_donate_to }}</small>
+                            <small><strong>Can receive from:</strong> {{ item.compatibility.can_receive_from }}</small>
+                        </div>
+
+                        <!-- Direct Quick-Action Links -->
+                        <div class="card-actions">
+                            <a href="{% url 'submit_blood_request' %}?blood_group={{ item.blood_group|urlencode }}" class="action-btn action-request" title="Request {{ item.blood_group }} blood">Request</a>
+                            <a href="{% url 'submit_donation' %}?blood_group={{ item.blood_group|urlencode }}" class="action-btn action-donate" title="Donate {{ item.blood_group }} blood">Donate</a>
+                        </div>
                     </div>
                 {% endfor %}
             </div>
@@ -262,5 +550,48 @@
             <p>Inventory counts are updated in real time upon verified donations and approved blood requests. This view is read-only.</p>
         </footer>
     </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const searchInput = document.getElementById('bloodSearchInput');
+            const filterButtons = document.querySelectorAll('.filter-btn[data-filter]');
+            const cards = document.querySelectorAll('.blood-card');
+
+            let currentFilter = 'all';
+            let searchQuery = '';
+
+            function applyFilters() {
+                cards.forEach(card => {
+                    const group = (card.getAttribute('data-group') || '').toLowerCase();
+                    const status = card.getAttribute('data-status') || '';
+
+                    const matchesSearch = !searchQuery || group.includes(searchQuery);
+                    const matchesFilter = currentFilter === 'all' || status === currentFilter;
+
+                    if (matchesSearch && matchesFilter) {
+                        card.style.display = 'flex';
+                    } else {
+                        card.style.display = 'none';
+                    }
+                });
+            }
+
+            if (searchInput) {
+                searchInput.addEventListener('input', function(e) {
+                    searchQuery = e.target.value.trim().toLowerCase();
+                    applyFilters();
+                });
+            }
+
+            filterButtons.forEach(btn => {
+                btn.addEventListener('click', function() {
+                    filterButtons.forEach(b => b.classList.remove('active'));
+                    this.classList.add('active');
+                    currentFilter = this.getAttribute('data-filter');
+                    applyFilters();
+                });
+            });
+        });
+    </script>
 </body>
 </html>
