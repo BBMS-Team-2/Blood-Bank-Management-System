@@ -345,6 +345,35 @@ class BloodAvailabilityTests(TestCase):
         inv = BloodInventory.objects.get(blood_group="AB+")
         self.assertEqual(inv.units, 7)
 
+    def test_blood_availability_includes_metrics_and_compatibility(self):
+        BloodInventory.objects.create(blood_group="A+", units=10)
+        BloodInventory.objects.create(blood_group="O-", units=2)
+        # Other groups remain 0 units
+
+        response = self.client.get(reverse("blood_availability"))
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.context["available_count"], 1)
+        self.assertEqual(response.context["low_stock_count"], 1)
+        self.assertEqual(response.context["out_of_stock_count"], 6)
+
+        # Check compatibility badge on Universal Donor O-
+        self.assertContains(response, "Universal Red Cell Donor")
+        self.assertContains(response, "Universal Recipient")
+
+    def test_quick_action_prefills_donation_and_request_blood_group(self):
+        user = User.objects.create_user(username="quick_action_user", password="password123")
+        self.client.force_login(user)
+
+        # Check prefill in request form
+        res_req = self.client.get(reverse("submit_blood_request") + "?blood_group=B+")
+        self.assertEqual(res_req.status_code, 200)
+        self.assertEqual(res_req.context["form"].initial.get("blood_group"), "B+")
+
+        # Check prefill in donation form
+        res_don = self.client.get(reverse("submit_donation") + "?blood_group=O-")
+        self.assertEqual(res_don.status_code, 200)
+        self.assertEqual(res_don.context["form"].initial.get("blood_group"), "O-")
+
 
 class DonationHistoryTests(TestCase):
     """

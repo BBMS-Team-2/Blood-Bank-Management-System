@@ -29,7 +29,15 @@ def submit_donation(request):
             messages.success(request, 'Donation submitted for review.')
             return redirect('submit_donation')
     else:
-        form = DonationForm()
+        initial = {}
+        blood_group_param = request.GET.get('blood_group', '').strip()
+        if blood_group_param:
+            valid_groups = dict(Donation.BLOOD_GROUPS)
+            if blood_group_param not in valid_groups and f"{blood_group_param}+" in valid_groups:
+                blood_group_param = f"{blood_group_param}+"
+            if blood_group_param in valid_groups:
+                initial['blood_group'] = blood_group_param
+        form = DonationForm(initial=initial)
 
     return render(
         request,
@@ -51,7 +59,15 @@ def submit_blood_request(request):
             messages.success(request, 'Blood request submitted successfully.')
             return redirect('submit_blood_request')
     else:
-        form = BloodRequestForm()
+        initial = {}
+        blood_group_param = request.GET.get('blood_group', '').strip()
+        if blood_group_param:
+            valid_groups = dict(Donation.BLOOD_GROUPS)
+            if blood_group_param not in valid_groups and f"{blood_group_param}+" in valid_groups:
+                blood_group_param = f"{blood_group_param}+"
+            if blood_group_param in valid_groups:
+                initial['blood_group'] = blood_group_param
+        form = BloodRequestForm(initial=initial)
 
     return render(
         request,
@@ -111,7 +127,7 @@ def manage_blood_requests(request):
     """Display pending blood requests for administrative review."""
     blood_requests = BloodRequest.objects.select_related('patient').filter(
         status='Pending'
-    ).order_by('-created_at')
+    ).order_by('created_at')
     return render(
         request,
         'blood/manage_blood_requests.html',
@@ -150,6 +166,58 @@ def review_blood_request(request, request_id):
     return redirect('manage_blood_requests')
 
 
+BLOOD_COMPATIBILITY = {
+    'O-': {
+        'badge': 'Universal Red Cell Donor',
+        'badge_class': 'badge-primary',
+        'can_donate_to': 'All Blood Groups (O-, O+, A-, A+, B-, B+, AB-, AB+)',
+        'can_receive_from': 'O- only',
+    },
+    'O+': {
+        'badge': 'Universal Positive Donor',
+        'badge_class': 'badge-info',
+        'can_donate_to': 'O+, A+, B+, AB+',
+        'can_receive_from': 'O+, O-',
+    },
+    'A-': {
+        'badge': 'Universal A Donor',
+        'badge_class': 'badge-info',
+        'can_donate_to': 'A-, A+, AB-, AB+',
+        'can_receive_from': 'A-, O-',
+    },
+    'A+': {
+        'badge': 'Common Recipient/Donor',
+        'badge_class': 'badge-secondary',
+        'can_donate_to': 'A+, AB+',
+        'can_receive_from': 'A+, A-, O+, O-',
+    },
+    'B-': {
+        'badge': 'Universal B Donor',
+        'badge_class': 'badge-info',
+        'can_donate_to': 'B-, B+, AB-, AB+',
+        'can_receive_from': 'B-, O-',
+    },
+    'B+': {
+        'badge': 'Common Recipient/Donor',
+        'badge_class': 'badge-secondary',
+        'can_donate_to': 'B+, AB+',
+        'can_receive_from': 'B+, B-, O+, O-',
+    },
+    'AB-': {
+        'badge': 'Universal AB Donor',
+        'badge_class': 'badge-info',
+        'can_donate_to': 'AB-, AB+',
+        'can_receive_from': 'AB-, A-, B-, O-',
+    },
+    'AB+': {
+        'badge': 'Universal Recipient',
+        'badge_class': 'badge-success',
+        'can_donate_to': 'AB+ only',
+        'can_receive_from': 'All Blood Groups (Universal Plasma Donor)',
+    },
+}
+
+
 def view_blood_availability(request):
     """
     BB-F-011: View Blood Availability
@@ -176,6 +244,10 @@ def view_blood_availability(request):
 
     blood_groups_data = []
     total_units = 0
+    available_count = 0
+    low_stock_count = 0
+    out_of_stock_count = 0
+
     for group, _ in Donation.BLOOD_GROUPS:
         item = inventory_records.get(group)
         units = item.units if item else 0
@@ -187,12 +259,15 @@ def view_blood_availability(request):
         if units == 0:
             status = 'Out of Stock'
             status_class = 'danger'
+            out_of_stock_count += 1
         elif units < 5:
             status = 'Low Stock'
             status_class = 'warning'
+            low_stock_count += 1
         else:
             status = 'Available'
             status_class = 'success'
+            available_count += 1
 
         blood_groups_data.append({
             'blood_group': group,
@@ -200,6 +275,8 @@ def view_blood_availability(request):
             'expiry_date': expiry_date,
             'status': status,
             'status_class': status_class,
+            'compatibility': BLOOD_COMPATIBILITY.get(group, {}),
+            'capacity_percentage': min(100, int((units / 20) * 100)),
         })
 
     return render(
@@ -208,6 +285,9 @@ def view_blood_availability(request):
         {
             'blood_groups': blood_groups_data,
             'total_units': total_units,
+            'available_count': available_count,
+            'low_stock_count': low_stock_count,
+            'out_of_stock_count': out_of_stock_count,
         }
     )
 
