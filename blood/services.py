@@ -86,7 +86,9 @@ def review_donation(donation_id, reviewer, action):
         return False
 
     if action == 'approve':
-        adjust_inventory_stock(donation.blood_group, donation.units)
+        inventory = adjust_inventory_stock(donation.blood_group, donation.units)
+        if donation.expiry_date and (not inventory.expiry_date or donation.expiry_date < inventory.expiry_date):
+            BloodInventory.objects.filter(pk=inventory.pk).update(expiry_date=donation.expiry_date)
 
     return True
 
