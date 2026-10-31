@@ -137,6 +137,21 @@ def review_blood_request(request_id, reviewer, action):
 
 
 @transaction.atomic
+def cancel_blood_request(request_id, user):
+    """
+    BB-F-015: Blood Request History (BB-SR-003)
+    Allows a patient to cancel their own pending blood request.
+    Enforces that only pending requests owned by the requesting user can be cancelled.
+    """
+    updated = BloodRequest.objects.filter(
+        pk=request_id,
+        patient=user,
+        status='Pending'
+    ).update(status='Cancelled')
+    return updated == 1
+
+
+@transaction.atomic
 def set_user_active_status(target_user_id, acting_user, is_active=None):
     """
     BB-F-017: User Management (TC-ADM-02, BB-SR-003)

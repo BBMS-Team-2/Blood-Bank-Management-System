@@ -540,6 +540,52 @@ class BloodRequestHistoryTests(TestCase):
         self.assertEqual(response.status_code, 302)
         self.assertIn("/accounts/login", response.url)
 
+    def test_request_history_displays_urgency_indicators_and_metrics(self):
+        self.client.force_login(self.patient1)
+        response = self.client.get(reverse("blood_request_history"))
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.context["total_requests"], 1)
+        self.assertEqual(response.context["approved_count"], 1)
+        self.assertEqual(response.context["pending_count"], 0)
+        self.assertEqual(response.context["total_units_requested"], 2)
+        self.assertContains(response, "Total Units Requested")
+
+    def test_patient_can_cancel_own_pending_request(self):
+        pending_req = BloodRequest.objects.create(
+            patient=self.patient1,
+            blood_group="B+",
+            units=1,
+            needed_by_date=date.today() + timedelta(days=3),
+            status="Pending"
+        )
+        self.client.force_login(self.patient1)
+        cancel_url = reverse("cancel_blood_request", kwargs={"request_id": pending_req.id})
+        response = self.client.post(cancel_url)
+        self.assertEqual(response.status_code, 302)
+        self.assertRedirects(response, reverse("blood_request_history"))
+
+        pending_req.refresh_from_db()
+        self.assertEqual(pending_req.status, "Cancelled")
+
+    def test_patient_cannot_cancel_other_patient_request(self):
+        self.client.force_login(self.patient1)
+        # Attempting to cancel patient2's pending request
+        cancel_url = reverse("cancel_blood_request", kwargs={"request_id": self.req2.id})
+        response = self.client.post(cancel_url)
+        self.assertEqual(response.status_code, 302)
+
+        self.req2.refresh_from_db()
+        self.assertEqual(self.req2.status, "Pending")
+
+    def test_patient_cannot_cancel_approved_request(self):
+        self.client.force_login(self.patient1)
+        cancel_url = reverse("cancel_blood_request", kwargs={"request_id": self.req1.id})
+        response = self.client.post(cancel_url)
+        self.assertEqual(response.status_code, 302)
+
+        self.req1.refresh_from_db()
+        self.assertEqual(self.req1.status, "Approved")
+
 
 class PatientProfileManagementTests(TestCase):
     """

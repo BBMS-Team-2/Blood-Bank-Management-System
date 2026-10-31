@@ -38,6 +38,11 @@ urlpatterns = [
         name='blood_request_history'
     ),
     path(
+        'requests/<int:request_id>/cancel/',
+        views.cancel_blood_request,
+        name='cancel_blood_request'
+    ),
+    path(
         'patient/profile/',
         views.patient_profile,
         name='patient_profile'

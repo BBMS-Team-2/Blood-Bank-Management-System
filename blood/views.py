@@ -15,7 +15,7 @@ from .forms import DonationForm, BloodRequestForm, PatientProfileForm, DonorProf
 from .models import Donation, BloodInventory, BloodRequest, PatientProfile, DonorProfile
 from .services import review_donation as process_donation_review
 from .services import review_blood_request as process_blood_request_review
-from .services import update_inventory_stock, set_user_active_status
+from .services import update_inventory_stock, set_user_active_status, cancel_blood_request as process_request_cancellation
 
 
 @login_required
@@ -363,16 +363,68 @@ def blood_request_history(request):
     BB-F-015: Blood Request History (BB-SR-003)
     Allows authenticated patients to view the status and history of their own blood requests.
     Enforces privacy isolation across patients.
+    Decorates requests with real-time urgency and timeline progression indicators.
     """
-    blood_requests = BloodRequest.objects.filter(
+    blood_requests = list(BloodRequest.objects.filter(
         patient=request.user
-    ).order_by('-needed_by_date', '-created_at')
+    ).order_by('-needed_by_date', '-created_at'))
+
+    today = date.today()
+    pending_count = 0
+    approved_count = 0
+    total_units_requested = 0
+
+    for req in blood_requests:
+        total_units_requested += req.units
+        if req.status == 'Pending':
+            pending_count += 1
+        elif req.status == 'Approved':
+            approved_count += 1
+
+        days_diff = (req.needed_by_date - today).days
+        req.days_remaining = days_diff
+        if req.status in ('Approved', 'Rejected', 'Cancelled'):
+            req.urgency_label = req.status
+            req.urgency_class = f'status-{req.status}'
+        elif days_diff < 0:
+            req.urgency_label = f"Overdue ({abs(days_diff)}d ago)"
+            req.urgency_class = 'urgency-overdue'
+        elif days_diff == 0:
+            req.urgency_label = "Needed Today"
+            req.urgency_class = "urgency-critical"
+        elif days_diff <= 2:
+            req.urgency_label = f"Urgent ({days_diff}d)"
+            req.urgency_class = "urgency-high"
+        else:
+            req.urgency_label = f"Standard ({days_diff}d)"
+            req.urgency_class = "urgency-normal"
 
     return render(
         request,
         'blood/blood_request_history.html',
-        {'blood_requests': blood_requests}
+        {
+            'blood_requests': blood_requests,
+            'total_requests': len(blood_requests),
+            'pending_count': pending_count,
+            'approved_count': approved_count,
+            'total_units_requested': total_units_requested,
+        }
     )
+
+
+@login_required
+@require_POST
+def cancel_blood_request(request, request_id):
+    """
+    BB-F-015: Cancel Blood Request (BB-SR-003)
+    Enables patient to cancel their own pending blood request.
+    """
+    success = process_request_cancellation(request_id, request.user)
+    if success:
+        messages.success(request, "Your blood request has been cancelled successfully.")
+    else:
+        messages.error(request, "Unable to cancel request. Only pending requests submitted by you can be cancelled.")
+    return redirect('blood_request_history')
 
 
 @login_required
