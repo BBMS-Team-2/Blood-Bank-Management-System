@@ -1,4 +1,7 @@
+from datetime import date
+
 from django.contrib.auth.models import User
+from django.core.exceptions import PermissionDenied
 from django.db import transaction
 from django.db.models import F
 from django.utils import timezone
@@ -26,7 +29,7 @@ def update_inventory_stock(blood_group, units):
     if units < 0:
         raise ValueError("Inventory units cannot be negative.")
 
-    inventory, _ = BloodInventory.objects.get_or_create(
+    inventory, _ = BloodInventory.objects.select_for_update().get_or_create(
         blood_group=normalized_group,
         defaults={'units': 0}
     )
@@ -45,7 +48,7 @@ def adjust_inventory_stock(blood_group, delta_units):
     except (TypeError, ValueError):
         raise ValueError("Inventory adjustment must be a whole number.")
 
-    inventory, _ = BloodInventory.objects.get_or_create(
+    inventory, _ = BloodInventory.objects.select_for_update().get_or_create(
         blood_group=normalized_group,
         defaults={'units': 0}
     )
@@ -54,85 +57,80 @@ def adjust_inventory_stock(blood_group, delta_units):
     if new_total < 0:
         raise ValueError("Inventory cannot go below zero.")
 
-    BloodInventory.objects.filter(pk=inventory.pk).update(
-        units=new_total,
-        updated_at=timezone.now()
-    )
-    inventory.refresh_from_db()
+    inventory.units = new_total
+    inventory.updated_at = timezone.now()
+    inventory.save(update_fields=['units', 'updated_at'])
     return inventory
 
 
 @transaction.atomic
 def review_donation(donation_id, reviewer, action):
+    if reviewer is None or not getattr(reviewer, 'is_staff', False):
+        raise PermissionDenied("Only staff members can review donations.")
+
     if action not in ('approve', 'reject'):
         raise ValueError("Action must be 'approve' or 'reject'.")
 
     try:
-        donation = Donation.objects.get(pk=donation_id)
+        donation = Donation.objects.select_for_update().get(pk=donation_id)
     except Donation.DoesNotExist:
         return False
 
-    new_status = 'Approved' if action == 'approve' else 'Rejected'
-
-    updated = Donation.objects.filter(
-        pk=donation_id,
-        status='Pending'
-    ).update(
-        status=new_status,
-        reviewed_by=reviewer,
-        reviewed_at=timezone.now()
-    )
-
-    if updated != 1:
+    if donation.status != 'Pending':
         return False
 
     if action == 'approve':
-        inventory = adjust_inventory_stock(donation.blood_group, donation.units)
+        inventory = BloodInventory.objects.select_for_update().filter(blood_group=donation.blood_group).first()
+        if inventory is None:
+            inventory, _ = BloodInventory.objects.select_for_update().get_or_create(
+                blood_group=donation.blood_group,
+                defaults={'units': 0}
+            )
+        inventory.units += donation.units
         if donation.expiry_date and (not inventory.expiry_date or donation.expiry_date < inventory.expiry_date):
-            BloodInventory.objects.filter(pk=inventory.pk).update(expiry_date=donation.expiry_date)
+            inventory.expiry_date = donation.expiry_date
+        inventory.updated_at = timezone.now()
+        inventory.save(update_fields=['units', 'expiry_date', 'updated_at'])
 
+    donation.status = 'Approved' if action == 'approve' else 'Rejected'
+    donation.reviewed_by = reviewer
+    donation.reviewed_at = timezone.now()
+    donation.save(update_fields=['status', 'reviewed_by', 'reviewed_at'])
     return True
 
 
 @transaction.atomic
 def review_blood_request(request_id, reviewer, action):
     """Review a pending blood request in a transactional workflow."""
+    if reviewer is None or not getattr(reviewer, 'is_staff', False):
+        raise PermissionDenied("Only staff members can review blood requests.")
+
     if action not in ('approve', 'reject'):
         raise ValueError("Action must be 'approve' or 'reject'.")
 
     try:
-        blood_request = BloodRequest.objects.get(pk=request_id)
+        blood_request = BloodRequest.objects.select_for_update().get(pk=request_id)
     except BloodRequest.DoesNotExist:
         return False
 
+    if blood_request.status != 'Pending':
+        return False
+
     if action == 'reject':
-        updated = BloodRequest.objects.filter(
-            pk=request_id,
-            status='Pending'
-        ).update(
-            status='Rejected'
-        )
-        return updated == 1
+        blood_request.status = 'Rejected'
+        blood_request.save(update_fields=['status'])
+        return True
 
-    inventory = BloodInventory.objects.filter(
-        blood_group=blood_request.blood_group
-    ).first()
-
+    inventory = BloodInventory.objects.select_for_update().filter(blood_group=blood_request.blood_group).first()
     if inventory is None or inventory.units < blood_request.units:
         return False
 
-    updated = BloodRequest.objects.filter(
-        pk=request_id,
-        status='Pending'
-    ).update(
-        status='Approved'
-    )
+    inventory.units -= blood_request.units
+    inventory.updated_at = timezone.now()
+    inventory.save(update_fields=['units', 'updated_at'])
 
-    if updated != 1:
-        return False
-
-    adjust_inventory_stock(blood_request.blood_group, -blood_request.units)
-
+    blood_request.status = 'Approved'
+    blood_request.save(update_fields=['status'])
     return True
 
 

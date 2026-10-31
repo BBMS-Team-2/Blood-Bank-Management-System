@@ -512,6 +512,20 @@ def login_view(request):
     next_url = request.GET.get('next') or request.POST.get('next') or 'blood_availability'
 
     if request.method == 'POST':
+        username = request.POST.get('username')
+        password = request.POST.get('password')
+        user = None
+
+        if username and password:
+            user = User.objects.filter(username=username).first()
+            if user is not None and user.check_password(password):
+                if not user.is_active:
+                    user = None
+                else:
+                    auth_login(request, user)
+                    messages.success(request, f'Welcome back, {user.username}!')
+                    return redirect(next_url)
+
         form = AuthenticationForm(request, data=request.POST)
         if form.is_valid():
             user = form.get_user()
