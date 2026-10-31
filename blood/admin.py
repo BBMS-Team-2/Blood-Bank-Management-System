@@ -90,9 +90,9 @@ class BloodRequestAdmin(admin.ModelAdmin):
 
 @admin.register(PatientProfile)
 class PatientProfileAdmin(admin.ModelAdmin):
-    list_display = ('user', 'blood_group', 'age', 'contact_phone', 'updated_at')
+    list_display = ('user', 'blood_group', 'age', 'contact_phone', 'hospital_name', 'updated_at')
     list_select_related = ('user',)
-    search_fields = ('user__username', 'contact_phone')
+    search_fields = ('user__username', 'contact_phone', 'emergency_contact_name', 'hospital_name')
 
 
 @admin.register(DonorProfile)

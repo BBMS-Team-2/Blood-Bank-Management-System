@@ -135,6 +135,10 @@ class PatientProfileForm(forms.ModelForm):
         self.fields['disease'].label = 'Medical Reason / Condition'
         self.fields['contact_phone'].label = 'Contact Phone Number'
         self.fields['address'].label = 'Residential Address'
+        self.fields['emergency_contact_name'].label = 'Emergency Contact Name'
+        self.fields['emergency_contact_phone'].label = 'Emergency Contact Phone'
+        self.fields['hospital_name'].label = 'Admitting Hospital / Medical Center'
+        self.fields['attending_physician'].label = 'Attending Doctor / Physician'
 
         for field_name, field in self.fields.items():
             field.widget.attrs.update({
@@ -156,6 +160,18 @@ class PatientProfileForm(forms.ModelForm):
             'rows': 3,
             'placeholder': 'Enter your residential address...',
         })
+        self.fields['emergency_contact_name'].widget.attrs.update({
+            'placeholder': 'Full name of emergency contact person',
+        })
+        self.fields['emergency_contact_phone'].widget.attrs.update({
+            'placeholder': 'Emergency phone number (e.g. +91 9876543211)',
+        })
+        self.fields['hospital_name'].widget.attrs.update({
+            'placeholder': 'e.g. Manipal Hospital, Bengaluru',
+        })
+        self.fields['attending_physician'].widget.attrs.update({
+            'placeholder': 'e.g. Dr. Ramesh Kumar',
+        })
 
     def clean_age(self):
         age = self.cleaned_data.get('age')
@@ -165,7 +181,17 @@ class PatientProfileForm(forms.ModelForm):
 
     class Meta:
         model = PatientProfile
-        fields = ['blood_group', 'age', 'disease', 'contact_phone', 'address']
+        fields = [
+            'blood_group',
+            'age',
+            'disease',
+            'contact_phone',
+            'address',
+            'emergency_contact_name',
+            'emergency_contact_phone',
+            'hospital_name',
+            'attending_physician',
+        ]
 
 
 class DonorProfileForm(forms.ModelForm):

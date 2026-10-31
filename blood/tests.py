@@ -645,6 +645,48 @@ class PatientProfileManagementTests(TestCase):
         self.assertEqual(response.status_code, 302)
         self.assertIn("/accounts/login", response.url)
 
+    def test_patient_can_update_emergency_contact_and_hospital_facility(self):
+        self.client.force_login(self.patient)
+        response = self.client.post(
+            reverse("patient_profile"),
+            {
+                "blood_group": "O+",
+                "age": 28,
+                "disease": "Thalassemia Minor",
+                "contact_phone": "+91-9876543210",
+                "address": "45 Richmond Circle, Bengaluru",
+                "emergency_contact_name": "Rohan Breja",
+                "emergency_contact_phone": "+91-9876500112",
+                "hospital_name": "St. John's Medical Center",
+                "attending_physician": "Dr. Arvind Swamy",
+            }
+        )
+        self.assertEqual(response.status_code, 302)
+        profile = PatientProfile.objects.get(user=self.patient)
+        self.assertEqual(profile.emergency_contact_name, "Rohan Breja")
+        self.assertEqual(profile.emergency_contact_phone, "+91-9876500112")
+        self.assertEqual(profile.hospital_name, "St. John's Medical Center")
+        self.assertEqual(profile.attending_physician, "Dr. Arvind Swamy")
+        self.assertEqual(profile.completeness_percentage, 100)
+
+    def test_patient_profile_completeness_calculation(self):
+        profile = PatientProfile.objects.create(
+            user=self.patient,
+            blood_group="B+",
+            age=30,
+            contact_phone="+91-9876543210",
+        )
+        # 3 out of 8 fields filled: blood_group, age, contact_phone
+        self.assertEqual(profile.completeness_percentage, int((3 / 8) * 100))
+
+    def test_profile_renders_completeness_meter_and_facility_sections(self):
+        self.client.force_login(self.patient)
+        response = self.client.get(reverse("patient_profile"))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Profile Completeness Status")
+        self.assertContains(response, "Emergency Contact Information")
+        self.assertContains(response, "Healthcare Facility Details")
+
 
 class SecurityAndAuthenticationTests(TestCase):
     """
