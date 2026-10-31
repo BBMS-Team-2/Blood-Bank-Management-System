@@ -16,6 +16,8 @@
             --text-muted: #64748b;
             --success: #16a34a;
             --success-bg: #dcfce7;
+            --warning: #d97706;
+            --warning-bg: #fef3c7;
             --danger: #dc2626;
             --danger-bg: #fee2e2;
         }
@@ -23,6 +25,7 @@
         * {
             box-sizing: border-box;
             margin: 0;
+            padding: 0;
         }
 
         body {
@@ -31,13 +34,13 @@
             color: var(--text-dark);
             min-height: 100vh;
             margin: 0;
-    padding: 0;
+            padding: 0;
         }
 
         .container {
-            max-width: 760px;
+            max-width: 800px;
             margin: 0 auto;
-    padding: 30px 20px 50px 20px;
+            padding: 30px 20px 50px 20px;
         }
 
         .header-panel {
@@ -50,6 +53,7 @@
             display: flex;
             align-items: center;
             gap: 20px;
+            flex-wrap: wrap;
         }
 
         .avatar-circle {
@@ -66,6 +70,11 @@
             flex-shrink: 0;
         }
 
+        .header-info {
+            flex: 1;
+            min-width: 240px;
+        }
+
         .header-info h1 {
             font-size: 1.75rem;
             font-weight: 700;
@@ -75,6 +84,59 @@
         .header-info p {
             color: #bfdbfe;
             font-size: 0.95rem;
+        }
+
+        /* Profile Completeness Card */
+        .completeness-card {
+            background: var(--panel);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 20px 24px;
+            margin-bottom: 24px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+        }
+
+        .completeness-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .completeness-title {
+            font-weight: 700;
+            font-size: 0.95rem;
+            color: var(--text-dark);
+        }
+
+        .completeness-badge {
+            font-size: 0.85rem;
+            font-weight: 800;
+            padding: 4px 12px;
+            border-radius: 20px;
+            background: var(--primary-light);
+            color: var(--primary-dark);
+        }
+
+        .progress-bar-bg {
+            width: 100%;
+            height: 8px;
+            background: #e2e8f0;
+            border-radius: 4px;
+            overflow: hidden;
+            margin-bottom: 8px;
+        }
+
+        .progress-bar-fill {
+            height: 100%;
+            border-radius: 4px;
+            background: linear-gradient(90deg, #3b82f6, #10b981);
+            transition: width 0.4s ease;
+        }
+
+        .completeness-hint {
+            font-size: 0.82rem;
+            color: var(--text-muted);
         }
 
         .nav-links {
@@ -107,6 +169,23 @@
             border-radius: 18px;
             padding: 32px;
             box-shadow: 0 6px 18px rgba(0, 0, 0, 0.04);
+            margin-bottom: 30px;
+        }
+
+        .form-section-title {
+            font-size: 1.1rem;
+            font-weight: 800;
+            color: var(--text-dark);
+            border-bottom: 2px solid #f1f5f9;
+            padding-bottom: 8px;
+            margin: 24px 0 16px 0;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .form-section-title:first-of-type {
+            margin-top: 0;
         }
 
         .alert {
@@ -121,16 +200,22 @@
         .alert-success { background: var(--success-bg); color: var(--success); border-color: #bbf7d0; }
         .alert-error { background: var(--danger-bg); color: var(--danger); border-color: #fecaca; }
 
+        .form-grid-2 {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+        }
+
         .form-group {
-            margin-bottom: 20px;
+            margin-bottom: 18px;
         }
 
         .form-group label {
             display: block;
             font-size: 0.88rem;
-            font-weight: 600;
+            font-weight: 700;
             color: var(--text-dark);
-            margin-bottom: 8px;
+            margin-bottom: 6px;
         }
 
         .form-control {
@@ -142,13 +227,6 @@
             background: #f8fafc;
             color: var(--text-dark);
             transition: all 0.2s ease;
-        }
-
-        .form-control:focus,
-        .btn-submit:focus-visible,
-        .nav-links a:focus-visible {
-            outline: 3px solid rgba(37, 99, 235, 0.2);
-            outline-offset: 2px;
         }
 
         .form-control:focus {
@@ -183,7 +261,7 @@
             box-shadow: 0 8px 16px rgba(37, 99, 235, 0.2);
             transition: all 0.2s ease;
             width: 100%;
-            margin-top: 10px;
+            margin-top: 16px;
         }
 
         .btn-submit:hover {
@@ -201,6 +279,10 @@
             .card {
                 padding: 20px 18px;
             }
+
+            .form-grid-2 {
+                grid-template-columns: 1fr;
+            }
         }
     </style>
 </head>
@@ -211,9 +293,27 @@
             <div class="avatar-circle">{{ user.username|slice:":1"|upper }}</div>
             <div class="header-info">
                 <h1>{{ user.username }}'s Profile</h1>
-                <p>Manage your patient medical profile and contact information</p>
+                <p>Manage your medical profile, emergency contacts, and attending healthcare details</p>
             </div>
         </header>
+
+        <!-- Profile Completeness Progress Card -->
+        <div class="completeness-card">
+            <div class="completeness-header">
+                <span class="completeness-title">Profile Completeness Status</span>
+                <span class="completeness-badge" id="completenessBadge">{{ profile.completeness_percentage }}% Complete</span>
+            </div>
+            <div class="progress-bar-bg">
+                <div class="progress-bar-fill" style="width: {{ profile.completeness_percentage }}%;"></div>
+            </div>
+            <div class="completeness-hint">
+                {% if profile.completeness_percentage >= 80 %}
+                    <span style="color: var(--success); font-weight:700;">&#10003; Excellent!</span> Your profile contains comprehensive medical and contact details for rapid blood dispatch.
+                {% else %}
+                    <span style="color: var(--warning); font-weight:700;">&#9888; Action Recommended:</span> Complete your emergency contact and hospital details below to ensure seamless request verification.
+                {% endif %}
+            </div>
+        </div>
 
         <nav class="nav-links" aria-label="Patient navigation">
             <a href="{% url 'blood_request_history' %}">My Blood Requests</a>
@@ -231,16 +331,19 @@
             <form method="post" novalidate>
                 {% csrf_token %}
 
-                <div class="form-group">
-                    <label for="{{ form.blood_group.id_for_label }}">{{ form.blood_group.label }}</label>
-                    {{ form.blood_group }}
-                    {{ form.blood_group.errors }}
-                </div>
-
-                <div class="form-group">
-                    <label for="{{ form.age.id_for_label }}">{{ form.age.label }}</label>
-                    {{ form.age }}
-                    {{ form.age.errors }}
+                <!-- Section 1: Basic Clinical Information -->
+                <div class="form-section-title">&#129658; Medical & Personal Details</div>
+                <div class="form-grid-2">
+                    <div class="form-group">
+                        <label for="{{ form.blood_group.id_for_label }}">{{ form.blood_group.label }}</label>
+                        {{ form.blood_group }}
+                        {{ form.blood_group.errors }}
+                    </div>
+                    <div class="form-group">
+                        <label for="{{ form.age.id_for_label }}">{{ form.age.label }}</label>
+                        {{ form.age }}
+                        {{ form.age.errors }}
+                    </div>
                 </div>
 
                 <div class="form-group">
@@ -259,6 +362,36 @@
                     <label for="{{ form.address.id_for_label }}">{{ form.address.label }}</label>
                     {{ form.address }}
                     {{ form.address.errors }}
+                </div>
+
+                <!-- Section 2: Emergency Contact Information -->
+                <div class="form-section-title">&#128222; Emergency Contact Information</div>
+                <div class="form-grid-2">
+                    <div class="form-group">
+                        <label for="{{ form.emergency_contact_name.id_for_label }}">{{ form.emergency_contact_name.label }}</label>
+                        {{ form.emergency_contact_name }}
+                        {{ form.emergency_contact_name.errors }}
+                    </div>
+                    <div class="form-group">
+                        <label for="{{ form.emergency_contact_phone.id_for_label }}">{{ form.emergency_contact_phone.label }}</label>
+                        {{ form.emergency_contact_phone }}
+                        {{ form.emergency_contact_phone.errors }}
+                    </div>
+                </div>
+
+                <!-- Section 3: Healthcare Facility Details -->
+                <div class="form-section-title">&#127973; Healthcare Facility Details</div>
+                <div class="form-grid-2">
+                    <div class="form-group">
+                        <label for="{{ form.hospital_name.id_for_label }}">{{ form.hospital_name.label }}</label>
+                        {{ form.hospital_name }}
+                        {{ form.hospital_name.errors }}
+                    </div>
+                    <div class="form-group">
+                        <label for="{{ form.attending_physician.id_for_label }}">{{ form.attending_physician.label }}</label>
+                        {{ form.attending_physician }}
+                        {{ form.attending_physician.errors }}
+                    </div>
                 </div>
 
                 <button type="submit" class="btn-submit">Save Profile Changes</button>

@@ -164,8 +164,27 @@ class PatientProfile(models.Model):
     )
     contact_phone = models.CharField(max_length=20, blank=True)
     address = models.TextField(blank=True)
+    emergency_contact_name = models.CharField(max_length=100, blank=True, help_text="Emergency contact person's full name")
+    emergency_contact_phone = models.CharField(max_length=20, blank=True, help_text="Emergency contact telephone number")
+    hospital_name = models.CharField(max_length=150, blank=True, help_text="Current admitting hospital or medical facility")
+    attending_physician = models.CharField(max_length=100, blank=True, help_text="Primary attending doctor or hematologist")
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+
+    @property
+    def completeness_percentage(self):
+        fields = [
+            self.blood_group,
+            self.age,
+            self.disease,
+            self.contact_phone,
+            self.address,
+            self.emergency_contact_name,
+            self.emergency_contact_phone,
+            self.hospital_name,
+        ]
+        filled = sum(1 for f in fields if f)
+        return int((filled / len(fields)) * 100)
 
     def __str__(self):
         return f"PatientProfile: {self.user.username} ({self.blood_group or 'Unspecified'})"

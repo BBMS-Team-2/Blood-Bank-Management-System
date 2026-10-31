@@ -6,12 +6,13 @@ from unittest.mock import patch
 from django.conf import settings
 from django.contrib import admin
 from django.contrib.auth.models import User
+from django.core.cache import cache
 from django.test import TestCase
 from django.urls import reverse
 
 from .admin import DonationAdmin
 from .models import BloodInventory, BloodRequest, Donation, PatientProfile, DonorProfile
-from .services import review_donation, review_blood_request, set_user_active_status
+from .services import review_donation, review_blood_request, set_user_active_status, check_login_lockout
 
 
 class DonationSubmissionTests(TestCase):
@@ -645,11 +646,59 @@ class PatientProfileManagementTests(TestCase):
         self.assertEqual(response.status_code, 302)
         self.assertIn("/accounts/login", response.url)
 
+    def test_patient_can_update_emergency_contact_and_hospital_facility(self):
+        self.client.force_login(self.patient)
+        response = self.client.post(
+            reverse("patient_profile"),
+            {
+                "blood_group": "O+",
+                "age": 28,
+                "disease": "Thalassemia Minor",
+                "contact_phone": "+91-9876543210",
+                "address": "45 Richmond Circle, Bengaluru",
+                "emergency_contact_name": "Rohan Breja",
+                "emergency_contact_phone": "+91-9876500112",
+                "hospital_name": "St. John's Medical Center",
+                "attending_physician": "Dr. Arvind Swamy",
+            }
+        )
+        self.assertEqual(response.status_code, 302)
+        profile = PatientProfile.objects.get(user=self.patient)
+        self.assertEqual(profile.emergency_contact_name, "Rohan Breja")
+        self.assertEqual(profile.emergency_contact_phone, "+91-9876500112")
+        self.assertEqual(profile.hospital_name, "St. John's Medical Center")
+        self.assertEqual(profile.attending_physician, "Dr. Arvind Swamy")
+        self.assertEqual(profile.completeness_percentage, 100)
+
+    def test_patient_profile_completeness_calculation(self):
+        profile = PatientProfile.objects.create(
+            user=self.patient,
+            blood_group="B+",
+            age=30,
+            contact_phone="+91-9876543210",
+        )
+        # 3 out of 8 fields filled: blood_group, age, contact_phone
+        self.assertEqual(profile.completeness_percentage, int((3 / 8) * 100))
+
+    def test_profile_renders_completeness_meter_and_facility_sections(self):
+        self.client.force_login(self.patient)
+        response = self.client.get(reverse("patient_profile"))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Profile Completeness Status")
+        self.assertContains(response, "Emergency Contact Information")
+        self.assertContains(response, "Healthcare Facility Details")
+
 
 class SecurityAndAuthenticationTests(TestCase):
     """
     BB-NF-003: Security & Password Protection (TC-SEC-01, TC-AUTH-01, BB-SR-001)
     """
+    def setUp(self):
+        cache.clear()
+
+    def tearDown(self):
+        cache.clear()
+
     def test_password_is_cryptographically_hashed_and_not_plaintext(self):
         raw_password = "SuperSecretPassword123!"
         response = self.client.post(
@@ -672,6 +721,47 @@ class SecurityAndAuthenticationTests(TestCase):
             "Password must be stored using a cryptographic one-way hash algorithm."
         )
         self.assertTrue(user.check_password(raw_password))
+
+    def test_password_complexity_validation_rules(self):
+        # Missing uppercase
+        res_no_upper = self.client.post(reverse("register"), {
+            "username": "test_user_1",
+            "email": "test1@example.com",
+            "password1": "lowercase123!",
+            "password2": "lowercase123!",
+        })
+        self.assertEqual(res_no_upper.status_code, 200)
+        self.assertContains(res_no_upper, "at least one uppercase letter")
+
+        # Missing lowercase
+        res_no_lower = self.client.post(reverse("register"), {
+            "username": "test_user_2",
+            "email": "test2@example.com",
+            "password1": "UPPERCASE123!",
+            "password2": "UPPERCASE123!",
+        })
+        self.assertEqual(res_no_lower.status_code, 200)
+        self.assertContains(res_no_lower, "at least one lowercase letter")
+
+        # Missing digit
+        res_no_digit = self.client.post(reverse("register"), {
+            "username": "test_user_3",
+            "email": "test3@example.com",
+            "password1": "NoDigitsHere!",
+            "password2": "NoDigitsHere!",
+        })
+        self.assertEqual(res_no_digit.status_code, 200)
+        self.assertContains(res_no_digit, "at least one numerical digit")
+
+        # Minimum length
+        res_too_short = self.client.post(reverse("register"), {
+            "username": "test_user_4",
+            "email": "test4@example.com",
+            "password1": "Sh1!",
+            "password2": "Sh1!",
+        })
+        self.assertEqual(res_too_short.status_code, 200)
+        self.assertContains(res_too_short, "at least 8 characters")
 
     def test_valid_credentials_authenticate_user_and_establish_session(self):
         User.objects.create_user(
@@ -703,6 +793,46 @@ class SecurityAndAuthenticationTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertNotIn("_auth_user_id", self.client.session)
         self.assertContains(response, "Invalid username or password")
+
+    def test_failed_login_attempts_warn_and_trigger_lockout(self):
+        User.objects.create_user(
+            username="lockout_user",
+            password="CorrectPassword123"
+        )
+        # First failed attempt
+        r1 = self.client.post(reverse("login"), {"username": "lockout_user", "password": "BadPassword1"})
+        self.assertContains(r1, "4 attempt(s) remaining before temporary lockout")
+
+        # Attempts 2, 3, 4
+        for _ in range(3):
+            self.client.post(reverse("login"), {"username": "lockout_user", "password": "BadPassword"})
+
+        # Attempt 5 triggers lockout
+        r5 = self.client.post(reverse("login"), {"username": "lockout_user", "password": "BadPassword"})
+        self.assertContains(r5, "Account is temporarily locked")
+
+        # Subsequent attempt while locked out is rejected even with right credentials
+        r6 = self.client.post(reverse("login"), {"username": "lockout_user", "password": "CorrectPassword123"})
+        self.assertContains(r6, "Account is temporarily locked")
+        self.assertNotIn("_auth_user_id", self.client.session)
+
+    def test_successful_login_resets_failed_attempts(self):
+        User.objects.create_user(
+            username="retry_user",
+            password="CorrectPassword123"
+        )
+        # Fail twice
+        self.client.post(reverse("login"), {"username": "retry_user", "password": "BadPassword"})
+        self.client.post(reverse("login"), {"username": "retry_user", "password": "BadPassword"})
+
+        # Successful login
+        res = self.client.post(reverse("login"), {"username": "retry_user", "password": "CorrectPassword123"})
+        self.assertEqual(res.status_code, 302)
+
+        # Confirm lock count was cleared
+        is_locked, _, attempts = check_login_lockout("retry_user", "127.0.0.1")
+        self.assertFalse(is_locked)
+        self.assertEqual(attempts, 0)
 
     def test_logout_invalidates_session(self):
         user = User.objects.create_user(

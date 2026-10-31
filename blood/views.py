@@ -15,7 +15,16 @@ from .forms import DonationForm, BloodRequestForm, PatientProfileForm, DonorProf
 from .models import Donation, BloodInventory, BloodRequest, PatientProfile, DonorProfile
 from .services import review_donation as process_donation_review
 from .services import review_blood_request as process_blood_request_review
-from .services import update_inventory_stock, set_user_active_status, cancel_blood_request as process_request_cancellation
+from .services import (
+    update_inventory_stock,
+    set_user_active_status,
+    cancel_blood_request as process_request_cancellation,
+    check_login_lockout,
+    record_failed_login_attempt,
+    clear_failed_login_attempts,
+    get_client_ip,
+    LOCKOUT_DURATION_SECONDS,
+)
 
 
 @login_required
@@ -505,19 +514,50 @@ def login_view(request):
     """
     BB-NF-003, BB-F-002: User Login
     Authenticates registered users securely; rejects invalid credentials without leaking details.
+    Guards against brute-force attacks via rate-limited lockouts and tracks session metadata.
     """
     if request.user.is_authenticated:
         return redirect('blood_availability')
 
     next_url = request.GET.get('next') or request.POST.get('next') or 'blood_availability'
+    ip_address = get_client_ip(request)
+    lockout_error = None
 
     if request.method == 'POST':
-        form = AuthenticationForm(request, data=request.POST)
-        if form.is_valid():
-            user = form.get_user()
-            auth_login(request, user)
-            messages.success(request, f'Welcome back, {user.username}!')
-            return redirect(next_url)
+        username = request.POST.get('username', '').strip()
+        is_locked, remaining_seconds, _ = check_login_lockout(username, ip_address)
+
+        if is_locked:
+            lockout_error = (
+                f"Invalid username or password. Account is temporarily locked due to multiple failed "
+                f"login attempts. Please try again in {remaining_seconds} seconds."
+            )
+            form = AuthenticationForm(request)
+        else:
+            form = AuthenticationForm(request, data=request.POST)
+            if form.is_valid():
+                user = form.get_user()
+                prev_last_login = user.last_login
+                clear_failed_login_attempts(username, ip_address)
+                auth_login(request, user)
+
+                if prev_last_login:
+                    formatted_time = prev_last_login.strftime('%b %d, %Y at %I:%M %p')
+                    messages.success(request, f'Welcome back, {user.username}! (Last login: {formatted_time})')
+                else:
+                    messages.success(request, f'Welcome to the Blood Bank Management System, {user.username}!')
+                return redirect(next_url)
+            else:
+                is_locked_now, remaining, lockout_sec = record_failed_login_attempt(username, ip_address)
+                if is_locked_now:
+                    lockout_error = (
+                        f"Invalid username or password. Account is temporarily locked for "
+                        f"{LOCKOUT_DURATION_SECONDS // 60} minutes due to multiple failed login attempts."
+                    )
+                else:
+                    lockout_error = (
+                        f"Invalid username or password. {remaining} attempt(s) remaining before temporary lockout."
+                    )
     else:
         form = AuthenticationForm(request)
 
@@ -527,6 +567,7 @@ def login_view(request):
         {
             'form': form,
             'next': next_url,
+            'lockout_error': lockout_error,
         }
     )
 

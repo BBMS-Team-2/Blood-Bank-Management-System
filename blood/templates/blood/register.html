@@ -165,6 +165,97 @@
             box-shadow: 0 10px 20px rgba(220, 38, 38, 0.3);
         }
 
+        .password-field-wrap {
+            position: relative;
+            display: flex;
+            align-items: center;
+        }
+
+        .password-toggle-btn {
+            position: absolute;
+            right: 12px;
+            background: none;
+            border: none;
+            color: var(--text-muted);
+            cursor: pointer;
+            padding: 4px;
+            font-size: 0.85rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .password-toggle-btn:hover {
+            color: var(--text-dark);
+        }
+
+        /* Password Strength Meter */
+        .strength-meter-wrap {
+            margin-top: 8px;
+            background: #f1f5f9;
+            padding: 10px 12px;
+            border-radius: 8px;
+            border: 1px solid #e2e8f0;
+        }
+
+        .strength-bar-bg {
+            height: 6px;
+            background: #cbd5e1;
+            border-radius: 3px;
+            overflow: hidden;
+            margin-bottom: 6px;
+        }
+
+        .strength-bar-fill {
+            height: 100%;
+            width: 0%;
+            border-radius: 3px;
+            transition: width 0.3s ease, background-color 0.3s ease;
+        }
+
+        .strength-label {
+            font-size: 0.78rem;
+            font-weight: 700;
+            color: var(--text-muted);
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .checklist-wrap {
+            margin-top: 8px;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 4px 8px;
+            font-size: 0.75rem;
+            color: #64748b;
+        }
+
+        .checklist-item {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            transition: color 0.2s ease;
+        }
+
+        .checklist-item.valid {
+            color: var(--success);
+            font-weight: 600;
+        }
+
+        .security-badge {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            margin-top: 18px;
+            padding: 8px 12px;
+            background: #f1f5f9;
+            border-radius: 8px;
+            font-size: 0.78rem;
+            color: #475569;
+            font-weight: 600;
+        }
+
         .auth-footer {
             margin-top: 24px;
             text-align: center;
@@ -202,19 +293,58 @@
             <form method="post" action="{% url 'register' %}" novalidate>
                 {% csrf_token %}
 
-                {% for field in form %}
-                    <div class="form-group">
-                        <label for="{{ field.id_for_label }}">{{ field.label }}</label>
-                        {{ field }}
-                        {% if field.help_text %}
-                            <span class="helptext">{{ field.help_text|safe }}</span>
-                        {% endif %}
-                        {{ field.errors }}
+                <div class="form-group">
+                    <label for="{{ form.username.id_for_label }}">{{ form.username.label }}</label>
+                    {{ form.username }}
+                    {{ form.username.errors }}
+                </div>
+
+                <div class="form-group">
+                    <label for="{{ form.email.id_for_label }}">{{ form.email.label }}</label>
+                    {{ form.email }}
+                    {{ form.email.errors }}
+                </div>
+
+                <div class="form-group">
+                    <label for="{{ form.password1.id_for_label }}">{{ form.password1.label }}</label>
+                    <div class="password-field-wrap">
+                        {{ form.password1 }}
+                        <button type="button" class="password-toggle-btn" id="togglePass1Btn" aria-label="Toggle password visibility">👁️</button>
                     </div>
-                {% endfor %}
+                    <!-- Password Strength Meter & Checklist -->
+                    <div class="strength-meter-wrap" id="strengthMeterWrap">
+                        <div class="strength-bar-bg">
+                            <div class="strength-bar-fill" id="strengthBarFill"></div>
+                        </div>
+                        <div class="strength-label">
+                            <span>Password Security:</span>
+                            <span id="strengthText">Enter password</span>
+                        </div>
+                        <div class="checklist-wrap">
+                            <div class="checklist-item" id="ruleLength"><span class="rule-icon">&#10007;</span> 8+ Characters</div>
+                            <div class="checklist-item" id="ruleUpper"><span class="rule-icon">&#10007;</span> Uppercase (A-Z)</div>
+                            <div class="checklist-item" id="ruleLower"><span class="rule-icon">&#10007;</span> Lowercase (a-z)</div>
+                            <div class="checklist-item" id="ruleNumber"><span class="rule-icon">&#10007;</span> Number (0-9)</div>
+                        </div>
+                    </div>
+                    {{ form.password1.errors }}
+                </div>
+
+                <div class="form-group">
+                    <label for="{{ form.password2.id_for_label }}">{{ form.password2.label }}</label>
+                    <div class="password-field-wrap">
+                        {{ form.password2 }}
+                        <button type="button" class="password-toggle-btn" id="togglePass2Btn" aria-label="Toggle password visibility">👁️</button>
+                    </div>
+                    {{ form.password2.errors }}
+                </div>
 
                 <button type="submit" class="btn-auth">Register</button>
             </form>
+
+            <div class="security-badge">
+                <span>🔒</span> Encrypted with PBKDF2 Cryptographic One-Way Hashing
+            </div>
 
             <div class="auth-footer">
                 Already registered? <a href="{% url 'login' %}">Sign In Here</a>
@@ -222,5 +352,93 @@
         </div>
     </div>
     </div>
+
+    <script>
+        function setupToggle(btnId, inputId) {
+            const btn = document.getElementById(btnId);
+            const input = document.getElementById(inputId);
+            if (btn && input) {
+                btn.addEventListener('click', function() {
+                    if (input.type === 'password') {
+                        input.type = 'text';
+                        btn.textContent = '🙈';
+                    } else {
+                        input.type = 'password';
+                        btn.textContent = '👁️';
+                    }
+                });
+            }
+        }
+        setupToggle('togglePass1Btn', 'id_password1');
+        setupToggle('togglePass2Btn', 'id_password2');
+
+        const passInput = document.getElementById('id_password1');
+        const barFill = document.getElementById('strengthBarFill');
+        const strengthText = document.getElementById('strengthText');
+        const ruleLength = document.getElementById('ruleLength');
+        const ruleUpper = document.getElementById('ruleUpper');
+        const ruleLower = document.getElementById('ruleLower');
+        const ruleNumber = document.getElementById('ruleNumber');
+
+        function updateRule(elem, isValid) {
+            if (!elem) return;
+            const icon = elem.querySelector('.rule-icon');
+            if (isValid) {
+                elem.classList.add('valid');
+                if (icon) icon.innerHTML = '&#10003;';
+            } else {
+                elem.classList.remove('valid');
+                if (icon) icon.innerHTML = '&#10007;';
+            }
+        }
+
+        if (passInput) {
+            passInput.addEventListener('input', function() {
+                const val = passInput.value;
+                const hasLength = val.length >= 8;
+                const hasUpper = /[A-Z]/.test(val);
+                const hasLower = /[a-z]/.test(val);
+                const hasNumber = /[0-9]/.test(val);
+
+                updateRule(ruleLength, hasLength);
+                updateRule(ruleUpper, hasUpper);
+                updateRule(ruleLower, hasLower);
+                updateRule(ruleNumber, hasNumber);
+
+                let score = 0;
+                if (hasLength) score++;
+                if (hasUpper) score++;
+                if (hasLower) score++;
+                if (hasNumber) score++;
+
+                if (val.length === 0) {
+                    barFill.style.width = '0%';
+                    barFill.style.backgroundColor = '#cbd5e1';
+                    strengthText.textContent = 'Enter password';
+                    strengthText.style.color = '#64748b';
+                } else if (score <= 1) {
+                    barFill.style.width = '25%';
+                    barFill.style.backgroundColor = '#ef4444';
+                    strengthText.textContent = 'Weak';
+                    strengthText.style.color = '#ef4444';
+                } else if (score === 2) {
+                    barFill.style.width = '50%';
+                    barFill.style.backgroundColor = '#f59e0b';
+                    strengthText.textContent = 'Fair';
+                    strengthText.style.color = '#f59e0b';
+                } else if (score === 3) {
+                    barFill.style.width = '75%';
+                    barFill.style.backgroundColor = '#3b82f6';
+                    strengthText.textContent = 'Good';
+                    strengthText.style.color = '#3b82f6';
+                } else {
+                    barFill.style.width = '100%';
+                    barFill.style.backgroundColor = '#10b981';
+                    strengthText.textContent = 'Strong ✓';
+                    strengthText.style.color = '#10b981';
+                }
+            });
+        }
+    </script>
 </body>
 </html>
