@@ -43,7 +43,9 @@ class DonationForm(forms.ModelForm):
 
     def clean_donation_date(self):
         donation_date = self.cleaned_data.get('donation_date')
-        if donation_date and donation_date > date.today():
+        if donation_date is None:
+            raise forms.ValidationError('This field is required.')
+        if donation_date > date.today():
             raise forms.ValidationError(
                 'Donation date cannot be in the future.'
             )
