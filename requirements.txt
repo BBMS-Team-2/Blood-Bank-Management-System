@@ -1,0 +1,7 @@
+# Blood Bank Management System (BBMS) - Python Dependencies
+# Python >= 3.12 recommended
+
+Django>=5.2.0,<6.0.0
+asgiref>=3.8.1
+sqlparse>=0.5.0
+tzdata>=2025.1
