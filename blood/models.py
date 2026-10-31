@@ -134,7 +134,11 @@ class BloodRequest(models.Model):
         super().clean()
         if self.units is not None and self.units < 1:
             raise ValidationError({'units': 'Units required must be at least 1.'})
-        if self.needed_by_date and self.needed_by_date < date.today():
+
+        # New requests must validate a future/Today deadline via the form.
+        # Existing requests may remain pending or be reviewed after the original date passes.
+        is_new_request = self._state.adding or self.pk is None
+        if is_new_request and self.needed_by_date and self.needed_by_date < date.today():
             raise ValidationError({'needed_by_date': 'Needed by date cannot be in the past.'})
 
     def save(self, *args, **kwargs):

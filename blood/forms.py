@@ -285,7 +285,11 @@ class UserRegisterForm(UserCreationForm):
 class BloodInventoryUpdateForm(forms.Form):
     """Admin-only form for maintaining blood inventory stock by blood group."""
     blood_group = forms.ChoiceField(choices=Donation.BLOOD_GROUPS, label='Blood Group')
-    units = forms.IntegerField(min_value=0, label='Units in Stock')
+    units = forms.IntegerField(
+        min_value=0,
+        label='Units in Stock',
+        error_messages={'min_value': 'Inventory units cannot be negative.'},
+    )
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)

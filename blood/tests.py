@@ -3,6 +3,7 @@ from datetime import date, timedelta
 from types import SimpleNamespace
 from unittest.mock import patch
 
+from django.conf import settings
 from django.contrib import admin
 from django.contrib.auth.models import User
 from django.core.cache import cache
@@ -1377,19 +1378,259 @@ class BloodRequestReviewServiceTests(TestCase):
         self.assertEqual(blood_request.status, "Pending")
         self.assertEqual(BloodInventory.objects.get(blood_group="O+").units, 10)
 
-    def test_non_staff_user_cannot_update_inventory(self):
-        regular_user = User.objects.create_user(username="regular_inventory_user")
-        BloodInventory.objects.create(blood_group="A+", units=4)
 
-        self.client.force_login(regular_user)
-        response = self.client.post(
-            reverse("update_inventory"),
-            {"blood_group": "A+", "units": 9},
+class BloodRequestReviewWorkflowTests(TestCase):
+    def setUp(self):
+        self.patient = User.objects.create_user(username="workflow_patient")
+        self.reviewer = User.objects.create_user(
+            username="workflow_reviewer",
+            is_staff=True,
+        )
+        self.client.force_login(self.reviewer)
+        self.blood_request = BloodRequest.objects.create(
+            patient=self.patient,
+            blood_group="B+",
+            units=2,
+            needed_by_date=date.today() + timedelta(days=4),
+            notes="Review workflow request",
         )
 
+    def test_staff_review_page_approves_pending_request(self):
+        BloodInventory.objects.create(blood_group="B+", units=5)
+        response = self.client.post(
+            reverse("review_blood_request", kwargs={"request_id": self.blood_request.id}),
+            {"action": "approve"},
+        )
+
+        self.assertRedirects(response, reverse("manage_blood_requests"))
+        self.blood_request.refresh_from_db()
+        self.assertEqual(self.blood_request.status, "Approved")
+        self.assertEqual(BloodInventory.objects.get(blood_group="B+").units, 3)
+
+    def test_staff_review_page_rejects_pending_request(self):
+        BloodInventory.objects.create(blood_group="B+", units=8)
+        response = self.client.post(
+            reverse("review_blood_request", kwargs={"request_id": self.blood_request.id}),
+            {"action": "reject"},
+        )
+
+        self.assertRedirects(response, reverse("manage_blood_requests"))
+        self.blood_request.refresh_from_db()
+        self.assertEqual(self.blood_request.status, "Rejected")
+        self.assertEqual(BloodInventory.objects.get(blood_group="B+").units, 8)
+
+    def test_staff_review_page_handles_invalid_and_missing_requests(self):
+        invalid_response = self.client.post(
+            reverse("review_blood_request", kwargs={"request_id": self.blood_request.id}),
+            {"action": "invalid"},
+        )
+        missing_response = self.client.post(
+            reverse("review_blood_request", kwargs={"request_id": 999999}),
+            {"action": "approve"},
+        )
+
+        self.assertRedirects(invalid_response, reverse("manage_blood_requests"))
+        self.assertRedirects(missing_response, reverse("manage_blood_requests"))
+        self.blood_request.refresh_from_db()
+        self.assertEqual(self.blood_request.status, "Pending")
+
+
+class BloodInventoryUpdateTests(TestCase):
+    def setUp(self):
+        self.staff = User.objects.create_user(
+            username="inventory_admin",
+            password="password123",
+            is_staff=True,
+        )
+        self.client.force_login(self.staff)
+
+    def test_staff_can_update_inventory_record(self):
+        response = self.client.post(
+            reverse("update_inventory"),
+            {"blood_group": "O+", "units": 9},
+        )
+
+        self.assertRedirects(response, reverse("update_inventory"))
+        self.assertEqual(BloodInventory.objects.get(blood_group="O+").units, 9)
+
+    def test_negative_inventory_values_are_rejected(self):
+        response = self.client.post(
+            reverse("update_inventory"),
+            {"blood_group": "A+", "units": -2},
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Inventory units cannot be negative.")
+        self.assertFalse(BloodInventory.objects.filter(blood_group="A+").exists())
+
+    def test_invalid_blood_group_is_rejected(self):
+        response = self.client.post(
+            reverse("update_inventory"),
+            {"blood_group": "INVALID", "units": 4},
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertFalse(BloodInventory.objects.filter(blood_group="INVALID").exists())
+
+
+class AdminDashboardTests(TestCase):
+    """
+    BB-F-016: Administrator Dashboard (TC-ADM-01, BB-SR-003)
+    Verifies staff-only access control, aggregated donor/patient metrics,
+    and current inventory coverage for the admin overview.
+    """
+
+    def setUp(self):
+        self.staff = User.objects.create_user(
+            username="dashboard_admin",
+            password="password123",
+            is_staff=True,
+        )
+        self.client.force_login(self.staff)
+
+        self.donor = User.objects.create_user(username="dashboard_donor", password="password123")
+        self.patient = User.objects.create_user(username="dashboard_patient", password="password123")
+        DonorProfile.objects.create(user=self.donor, blood_group="O+", age=28, contact_phone="123456")
+        PatientProfile.objects.create(user=self.patient, blood_group="AB+", age=30, contact_phone="987654")
+
+        Donation.objects.create(
+            donor=self.donor,
+            blood_group="O+",
+            donation_date=date.today(),
+            units=2,
+            status="Approved",
+        )
+        Donation.objects.create(
+            donor=self.donor,
+            blood_group="A+",
+            donation_date=date.today(),
+            units=1,
+            status="Pending",
+        )
+
+        BloodRequest.objects.create(
+            patient=self.patient,
+            blood_group="AB+",
+            units=1,
+            needed_by_date=date.today() + timedelta(days=2),
+            status="Pending",
+        )
+        BloodRequest.objects.create(
+            patient=self.patient,
+            blood_group="O-",
+            units=2,
+            needed_by_date=date.today() + timedelta(days=5),
+            status="Approved",
+        )
+
+        BloodInventory.objects.create(blood_group="O+", units=10)
+        BloodInventory.objects.create(blood_group="AB+", units=5)
+
+    def test_staff_can_access_dashboard(self):
+        response = self.client.get(reverse("admin_dashboard"))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Administrator Dashboard")
+        self.assertContains(response, "System overview of donors, patients")
+        self.assertIn("request_counts", response.context)
+        self.assertIn("donation_counts", response.context)
+
+    def test_dashboard_reports_aggregate_metrics(self):
+        response = self.client.get(reverse("admin_dashboard"))
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.context["donor_count"], 1)
+        self.assertEqual(response.context["patient_count"], 1)
+        self.assertEqual(response.context["request_counts"]["pending"], 1)
+        self.assertEqual(response.context["request_counts"]["approved"], 1)
+        self.assertEqual(response.context["donation_counts"]["approved"], 1)
+        self.assertEqual(response.context["donation_counts"]["pending"], 1)
+        self.assertEqual(response.context["total_stock_units"], 15)
+
+    def test_non_staff_user_cannot_access_dashboard(self):
+        self.client.logout()
+        regular_user = User.objects.create_user(username="not_admin", password="password123")
+        self.client.force_login(regular_user)
+        response = self.client.get(reverse("admin_dashboard"))
         self.assertEqual(response.status_code, 302)
         self.assertIn("/admin/login", response.url)
-        self.assertEqual(BloodInventory.objects.get(blood_group="A+").units, 4)
+
+
+class UserManagementTests(TestCase):
+    """
+    BB-F-017: User Management (TC-ADM-02, BB-SR-003)
+    Verifies staff-only user management interface, multi-field search across
+    communities, and safe state toggles that protect both self and superuser.
+    """
+
+    def setUp(self):
+        self.staff = User.objects.create_user(
+            username="user_admin",
+            password="password123",
+            is_staff=True,
+        )
+        self.client.force_login(self.staff)
+        self.target_user = User.objects.create_user(
+            username="target_user",
+            password="password123",
+            is_active=True,
+        )
+        self.superuser = User.objects.create_user(
+            username="super_user",
+            password="password123",
+            is_superuser=True,
+            is_active=True,
+        )
+        self.target_user.first_name = "Aisha"
+        self.target_user.last_name = "Patel"
+        self.target_user.email = "aisha@example.com"
+        self.target_user.save()
+
+    def test_staff_can_view_user_management_page(self):
+        response = self.client.get(reverse("user_management"))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "User Management")
+        self.assertIn("users", response.context)
+        self.assertIn("total_users", response.context)
+
+    def test_search_filters_users_across_visible_fields(self):
+        response = self.client.get(reverse("user_management"), {"q": "Aisha"})
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Aisha")
+
+        response = self.client.get(reverse("user_management"), {"q": "super_user"})
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "super_user")
+
+    def test_toggle_user_active_updates_status(self):
+        response = self.client.post(
+            reverse("toggle_user_active", kwargs={"user_id": self.target_user.id}),
+            {"action": "deactivate"},
+        )
+        self.assertEqual(response.status_code, 302)
+        self.target_user.refresh_from_db()
+        self.assertFalse(self.target_user.is_active)
+
+        response = self.client.post(
+            reverse("toggle_user_active", kwargs={"user_id": self.target_user.id}),
+            {"action": "activate"},
+        )
+        self.assertEqual(response.status_code, 302)
+        self.target_user.refresh_from_db()
+        self.assertTrue(self.target_user.is_active)
+
+    def test_self_and_superuser_deactivation_are_blocked(self):
+        with self.assertRaises(PermissionError):
+            set_user_active_status(self.staff.id, self.staff, is_active=False)
+
+        with self.assertRaises(PermissionError):
+            set_user_active_status(self.superuser.id, self.staff, is_active=False)
+
+    def test_non_staff_user_cannot_access_user_management(self):
+        self.client.logout()
+        regular_user = User.objects.create_user(username="regular_user", password="password123")
+        self.client.force_login(regular_user)
+        response = self.client.get(reverse("user_management"))
+        self.assertEqual(response.status_code, 302)
+        self.assertIn("/admin/login", response.url)
 
 
 
