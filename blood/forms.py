@@ -239,6 +239,7 @@ class UserRegisterForm(UserCreationForm):
     """
     BB-NF-003, BB-F-001: Secure User Registration
     Uses Django's cryptographic password hashing (PBKDF2) and strong validation.
+    Enforces healthcare-grade password complexity (length, casing, numerical digits).
     """
     email = forms.EmailField(required=True, label='Email Address')
 
@@ -248,6 +249,31 @@ class UserRegisterForm(UserCreationForm):
             field.widget.attrs.update({
                 'class': 'form-control',
             })
+        if 'username' in self.fields:
+            self.fields['username'].widget.attrs.update({'placeholder': 'Choose a unique username'})
+        if 'email' in self.fields:
+            self.fields['email'].widget.attrs.update({'placeholder': 'e.g. user@hospital.org'})
+        if 'password1' in self.fields:
+            self.fields['password1'].widget.attrs.update({'placeholder': 'Create a strong password (min 8 chars)'})
+        if 'password2' in self.fields:
+            self.fields['password2'].widget.attrs.update({'placeholder': 'Confirm your password'})
+
+    def clean(self):
+        cleaned_data = super().clean()
+        password1 = cleaned_data.get('password1')
+        password2 = cleaned_data.get('password2')
+
+        if password1 and password2 and password1 == password2:
+            if len(password1) < 8:
+                self.add_error('password1', forms.ValidationError("Password must contain at least 8 characters."))
+            elif not any(c.isupper() for c in password1):
+                self.add_error('password1', forms.ValidationError("Password must contain at least one uppercase letter (A-Z)."))
+            elif not any(c.islower() for c in password1):
+                self.add_error('password1', forms.ValidationError("Password must contain at least one lowercase letter (a-z)."))
+            elif not any(c.isdigit() for c in password1):
+                self.add_error('password1', forms.ValidationError("Password must contain at least one numerical digit (0-9)."))
+
+        return cleaned_data
 
     class Meta:
         model = User

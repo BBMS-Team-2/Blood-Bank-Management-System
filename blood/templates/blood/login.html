@@ -143,6 +143,44 @@
 
         .btn-auth:hover { transform: translateY(-1px); }
 
+        .password-field-wrap {
+            position: relative;
+            display: flex;
+            align-items: center;
+        }
+
+        .password-toggle-btn {
+            position: absolute;
+            right: 12px;
+            background: none;
+            border: none;
+            color: var(--text-muted);
+            cursor: pointer;
+            padding: 4px;
+            font-size: 0.85rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .password-toggle-btn:hover {
+            color: var(--text-dark);
+        }
+
+        .security-badge {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            margin-top: 18px;
+            padding: 8px 12px;
+            background: #f1f5f9;
+            border-radius: 8px;
+            font-size: 0.78rem;
+            color: #475569;
+            font-weight: 600;
+        }
+
         .auth-footer {
             margin-top: 22px;
             text-align: center;
@@ -177,7 +215,11 @@
                 </div>
             {% endif %}
 
-            {% if form.errors %}
+            {% if lockout_error %}
+                <div class="alert alert-error" role="alert">
+                    {{ lockout_error }}
+                </div>
+            {% elif form.errors %}
                 <div class="alert alert-error" role="alert">
                     Invalid username or password. Please verify your credentials and try again.
                 </div>
@@ -194,11 +236,20 @@
 
                 <div class="form-group">
                     <label for="id_password">Password</label>
-                    <input type="password" name="password" id="id_password" class="form-control" required placeholder="Enter your password">
+                    <div class="password-field-wrap">
+                        <input type="password" name="password" id="id_password" class="form-control" style="padding-right: 40px;" required placeholder="Enter your password">
+                        <button type="button" class="password-toggle-btn" id="togglePasswordBtn" aria-label="Toggle password visibility">
+                            👁️
+                        </button>
+                    </div>
                 </div>
 
                 <button type="submit" class="btn-auth">Sign In</button>
             </form>
+
+            <div class="security-badge">
+                <span>🔒</span> Protected by Encrypted Sessions &amp; Rate-Limiting
+            </div>
 
             <div class="auth-footer">
                 Don’t have an account? <a href="{% url 'register' %}">Create Account</a>
@@ -206,5 +257,21 @@
         </div>
     </div>
     </div>
+
+    <script>
+        const toggleBtn = document.getElementById('togglePasswordBtn');
+        const passInput = document.getElementById('id_password');
+        if (toggleBtn && passInput) {
+            toggleBtn.addEventListener('click', function() {
+                if (passInput.type === 'password') {
+                    passInput.type = 'text';
+                    toggleBtn.textContent = '🙈';
+                } else {
+                    passInput.type = 'password';
+                    toggleBtn.textContent = '👁️';
+                }
+            });
+        }
+    </script>
 </body>
 </html>

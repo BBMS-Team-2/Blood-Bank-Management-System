@@ -1,4 +1,5 @@
 from django.contrib.auth.models import User
+from django.core.cache import cache
 from django.db import transaction
 from django.db.models import F
 from django.utils import timezone
@@ -179,4 +180,76 @@ def set_user_active_status(target_user_id, acting_user, is_active=None):
     target_user.is_active = new_status
     target_user.save(update_fields=['is_active'])
     return target_user
+
+
+# ============================================================================
+# BB-NF-003: Authentication Security & Session Protection (TC-SEC-01)
+# ============================================================================
+
+MAX_FAILED_LOGIN_ATTEMPTS = 5
+LOCKOUT_DURATION_SECONDS = 300  # 5 minutes
+
+
+def get_client_ip(request):
+    """Retrieve client IP address from request headers with fallback."""
+    x_forwarded_for = request.META.get('HTTP_X_FORWARDED_FOR')
+    if x_forwarded_for:
+        return x_forwarded_for.split(',')[0].strip()
+    return request.META.get('REMOTE_ADDR', '127.0.0.1')
+
+
+def get_login_attempt_cache_key(username, ip_address):
+    """Generate consistent cache key for tracking failed login attempts."""
+    clean_user = (username or '').strip().lower()
+    return f"login_attempts:{clean_user}:{ip_address}"
+
+
+def check_login_lockout(username, ip_address):
+    """
+    Check if a user/IP is currently locked out from logging in.
+    Returns (is_locked: bool, remaining_seconds: int, attempts: int).
+    """
+    key = get_login_attempt_cache_key(username, ip_address)
+    record = cache.get(key)
+    if not record:
+        return False, 0, 0
+
+    attempts = record.get('attempts', 0)
+    locked_until = record.get('locked_until')
+    if locked_until:
+        now_ts = timezone.now().timestamp()
+        if now_ts < locked_until:
+            return True, int(locked_until - now_ts) + 1, attempts
+        # Lockout expired
+        cache.delete(key)
+        return False, 0, 0
+
+    return False, 0, attempts
+
+
+def record_failed_login_attempt(username, ip_address):
+    """
+    Increment failed login count for user/IP. Triggers lockout if threshold exceeded.
+    Returns (is_locked: bool, remaining_attempts: int, lockout_seconds: int).
+    """
+    key = get_login_attempt_cache_key(username, ip_address)
+    now_ts = timezone.now().timestamp()
+    record = cache.get(key) or {'attempts': 0, 'locked_until': None}
+
+    attempts = record['attempts'] + 1
+    if attempts >= MAX_FAILED_LOGIN_ATTEMPTS:
+        locked_until = now_ts + LOCKOUT_DURATION_SECONDS
+        cache.set(key, {'attempts': attempts, 'locked_until': locked_until}, LOCKOUT_DURATION_SECONDS)
+        return True, 0, LOCKOUT_DURATION_SECONDS
+    else:
+        cache.set(key, {'attempts': attempts, 'locked_until': None}, LOCKOUT_DURATION_SECONDS)
+        remaining = MAX_FAILED_LOGIN_ATTEMPTS - attempts
+        return False, remaining, 0
+
+
+def clear_failed_login_attempts(username, ip_address):
+    """Reset failed login count upon successful authentication."""
+    key = get_login_attempt_cache_key(username, ip_address)
+    cache.delete(key)
+
 
