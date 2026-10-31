@@ -1,1 +1,8 @@
-hi, i am hemaksh, a 5th sem student at PES university studying CSE :DD
+hi, i am hemaksh, a 5th sem student at PES university studying CSE :D
+
+Name: Hemaksh Breja
+SRN: PES2UG24CS191
+Branch: Computer Science and Engineering
+College: PES University
+Role: Team Member
+Project Name:- Blood-Bank-Management-System
