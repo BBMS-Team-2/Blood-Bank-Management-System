@@ -1069,8 +1069,11 @@ class PerformanceRequirementsTests(TestCase):
         response = self.client.get(reverse("blood_availability"))
         self.assertEqual(response.status_code, 200)
         self.assertIn("X-Response-Time", response.headers)
+        self.assertIn("X-DB-Queries", response.headers)
         self.assertIn("Server-Timing", response.headers)
         self.assertTrue(response.headers["X-Response-Time"].endswith("s"))
+        self.assertTrue(response.headers["X-DB-Queries"].isdigit())
+        self.assertIn("sql;dur=", response.headers["Server-Timing"])
 
     def test_blood_availability_response_time_under_sla(self):
         start = time.perf_counter()
