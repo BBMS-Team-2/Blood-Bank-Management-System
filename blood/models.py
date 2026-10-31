@@ -20,6 +20,7 @@ class Donation(models.Model):
         ('Pending', 'Pending'),
         ('Approved', 'Approved'),
         ('Rejected', 'Rejected'),
+        ('Cancelled', 'Cancelled'),
     ]
 
     donor = models.ForeignKey(

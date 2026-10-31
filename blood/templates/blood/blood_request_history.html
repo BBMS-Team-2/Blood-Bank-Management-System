@@ -19,6 +19,10 @@
             --warning-bg: #fef3c7;
             --danger: #dc2626;
             --danger-bg: #fee2e2;
+            --info: #0284c7;
+            --info-bg: #e0f2fe;
+            --purple: #7e22ce;
+            --purple-bg: #f3e8ff;
         }
 
         * {
@@ -33,13 +37,13 @@
             color: var(--text-dark);
             min-height: 100vh;
             margin: 0;
-    padding: 0;
+            padding: 0;
         }
 
         .container {
-            max-width: 960px;
+            max-width: 1050px;
             margin: 0 auto;
-    padding: 30px 20px 50px 20px;
+            padding: 30px 20px 50px 20px;
         }
 
         .header-panel {
@@ -77,11 +81,115 @@
             border-radius: 12px;
             box-shadow: 0 4px 10px rgba(0, 0, 0, 0.08);
             transition: all 0.2s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
         }
 
         .btn-request:hover {
             transform: translateY(-2px);
             box-shadow: 0 8px 16px rgba(0, 0, 0, 0.12);
+        }
+
+        /* Summary Metrics Cards */
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+
+        .metric-card {
+            background: var(--panel);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 18px 22px;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.03);
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .metric-val {
+            font-size: 1.9rem;
+            font-weight: 800;
+            line-height: 1.1;
+        }
+
+        .metric-title {
+            font-size: 0.82rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            font-weight: 600;
+        }
+
+        .text-primary { color: var(--primary); }
+        .text-warning { color: var(--warning); }
+        .text-success { color: var(--success); }
+
+        /* Toolbar */
+        .toolbar-panel {
+            background: var(--panel);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 16px 20px;
+            margin-bottom: 24px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+            display: flex;
+            flex-wrap: wrap;
+            gap: 14px;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .search-box {
+            flex: 1;
+            min-width: 220px;
+        }
+
+        .search-box input {
+            width: 100%;
+            padding: 10px 16px;
+            border-radius: 10px;
+            border: 1px solid var(--border);
+            font-size: 0.92rem;
+            outline: none;
+            transition: border-color 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .search-box input:focus {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(29, 78, 216, 0.15);
+        }
+
+        .filter-pills {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .filter-btn {
+            background: #f1f5f9;
+            color: var(--text-muted);
+            border: 1px solid var(--border);
+            padding: 8px 14px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .filter-btn:hover {
+            background: #e2e8f0;
+            color: var(--text-dark);
+        }
+
+        .filter-btn.active {
+            background: var(--primary);
+            color: #ffffff;
+            border-color: var(--primary);
         }
 
         .nav-links {
@@ -114,6 +222,7 @@
             border-radius: 18px;
             overflow: hidden;
             box-shadow: 0 6px 18px rgba(0, 0, 0, 0.04);
+            margin-bottom: 30px;
         }
 
         table {
@@ -187,6 +296,62 @@
             color: var(--danger);
         }
 
+        .status-Cancelled {
+            background: #e2e8f0;
+            color: #475569;
+        }
+
+        /* Urgency Badges */
+        .urgency-badge {
+            display: inline-block;
+            padding: 3px 8px;
+            border-radius: 6px;
+            font-size: 0.75rem;
+            font-weight: 700;
+            margin-top: 4px;
+        }
+
+        .urgency-critical { background: #fee2e2; color: #991b1b; }
+        .urgency-high { background: #fef3c7; color: #92400e; }
+        .urgency-normal { background: #e0f2fe; color: #075985; }
+        .urgency-overdue { background: #f1f5f9; color: #64748b; }
+
+        .btn-cancel {
+            background: #fee2e2;
+            color: #991b1b;
+            border: 1px solid #fecaca;
+            padding: 6px 12px;
+            border-radius: 8px;
+            font-size: 0.78rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .btn-cancel:hover {
+            background: #fecaca;
+            color: #7f1d1d;
+        }
+
+        .btn-slip {
+            background: #dbeafe;
+            color: #1e40af;
+            border: 1px solid #bfdbfe;
+            padding: 6px 12px;
+            border-radius: 8px;
+            font-size: 0.78rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .btn-slip:hover {
+            background: #bfdbfe;
+        }
+
         .empty-state {
             padding: 60px 20px;
             text-align: center;
@@ -203,6 +368,130 @@
             font-size: 0.95rem;
             margin-bottom: 20px;
         }
+
+        /* Pickup Slip Modal */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(15, 23, 42, 0.6);
+            backdrop-filter: blur(4px);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .modal-card {
+            background: #ffffff;
+            border-radius: 20px;
+            max-width: 600px;
+            width: 100%;
+            padding: 36px 40px;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+            position: relative;
+            border: 8px double #cbd5e1;
+        }
+
+        .slip-header {
+            text-align: center;
+            border-bottom: 2px solid #bfdbfe;
+            padding-bottom: 18px;
+            margin-bottom: 22px;
+        }
+
+        .slip-header h2 {
+            font-size: 1.55rem;
+            color: var(--primary-dark);
+            font-weight: 800;
+            letter-spacing: -0.5px;
+        }
+
+        .slip-header p {
+            color: var(--text-muted);
+            font-size: 0.9rem;
+            margin-top: 4px;
+        }
+
+        .slip-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+            background: #f8fafc;
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 20px;
+            text-align: left;
+            font-size: 0.92rem;
+        }
+
+        .slip-instructions {
+            background: #eff6ff;
+            border: 1px solid #bfdbfe;
+            border-radius: 10px;
+            padding: 12px 16px;
+            font-size: 0.85rem;
+            color: #1e3a8a;
+            line-height: 1.5;
+        }
+
+        .slip-actions {
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+            margin-top: 24px;
+        }
+
+        .btn-modal-close {
+            background: #f1f5f9;
+            color: var(--text-dark);
+            border: none;
+            padding: 10px 18px;
+            border-radius: 10px;
+            font-weight: 600;
+            cursor: pointer;
+        }
+
+        .btn-modal-print {
+            background: var(--primary);
+            color: #ffffff;
+            border: none;
+            padding: 10px 22px;
+            border-radius: 10px;
+            font-weight: 700;
+            cursor: pointer;
+        }
+
+        @media print {
+            body * {
+                visibility: hidden;
+            }
+            #pickupModal, #pickupModal * {
+                visibility: visible;
+            }
+            #pickupModal {
+                position: absolute;
+                left: 0;
+                top: 0;
+                width: 100%;
+                display: flex !important;
+                background: none;
+                padding: 0;
+            }
+            .modal-card {
+                border: 4px double #000;
+                box-shadow: none;
+                width: 100%;
+                max-width: 100%;
+            }
+            .slip-actions {
+                display: none !important;
+            }
+        }
     </style>
 </head>
 <body>
@@ -211,10 +500,44 @@
         <header class="header-panel">
             <div>
                 <h1>My Blood Requests</h1>
-                <p>Welcome, {{ user.username }}. Track the live status of your blood requests here.</p>
+                <p>Welcome, {{ user.username }}. Track fulfillment progress and maintain your blood requests.</p>
             </div>
             <a href="{% url 'submit_blood_request' %}" class="btn-request">+ New Blood Request</a>
         </header>
+
+        <!-- Summary Metrics Row -->
+        <div class="metrics-grid">
+            <div class="metric-card">
+                <div class="metric-val text-primary" id="totalRequestsStat">{{ total_requests }}</div>
+                <div class="metric-title">Total Requests Submitted</div>
+            </div>
+            <div class="metric-card">
+                <div class="metric-val text-warning" id="pendingRequestsStat">{{ pending_count }}</div>
+                <div class="metric-title">Pending Staff Review</div>
+            </div>
+            <div class="metric-card">
+                <div class="metric-val text-success" id="approvedRequestsStat">{{ approved_count }}</div>
+                <div class="metric-title">Approved & Ready</div>
+            </div>
+            <div class="metric-card">
+                <div class="metric-val" id="totalUnitsRequestedStat">{{ total_units_requested }}</div>
+                <div class="metric-title">Total Units Requested</div>
+            </div>
+        </div>
+
+        <!-- Filter & Search Toolbar -->
+        <div class="toolbar-panel">
+            <div class="search-box">
+                <input type="text" id="requestSearchInput" placeholder="Filter by blood group or notes..." aria-label="Search blood requests">
+            </div>
+            <div class="filter-pills">
+                <button type="button" class="filter-btn active" data-filter="all">All ({{ total_requests }})</button>
+                <button type="button" class="filter-btn" data-filter="Pending">Pending ({{ pending_count }})</button>
+                <button type="button" class="filter-btn" data-filter="Approved">Approved ({{ approved_count }})</button>
+                <button type="button" class="filter-btn" data-filter="Rejected">Rejected</button>
+                <button type="button" class="filter-btn" data-filter="Cancelled">Cancelled</button>
+            </div>
+        </div>
 
         <nav class="nav-links">
             <a href="{% url 'blood_availability' %}">Blood Availability</a>
@@ -228,23 +551,41 @@
                         <tr>
                             <th>Blood Group</th>
                             <th>Units</th>
-                            <th>Needed By</th>
+                            <th>Needed By & Urgency</th>
                             <th>Status</th>
                             <th>Notes</th>
                             <th>Requested On</th>
+                            <th>Actions</th>
                         </tr>
                     </thead>
-                    <tbody>
+                    <tbody id="requestsTableBody">
                         {% for req in blood_requests %}
-                            <tr id="request-row-{{ req.id }}">
+                            <tr id="request-row-{{ req.id }}" data-group="{{ req.blood_group }}" data-status="{{ req.status }}" data-notes="{{ req.notes|default:'' }}">
                                 <td><span class="badge-blood">{{ req.blood_group }}</span></td>
                                 <td><strong>{{ req.units }}</strong> unit{{ req.units|pluralize }}</td>
-                                <td>{{ req.needed_by_date }}</td>
+                                <td>
+                                    <div>{{ req.needed_by_date }}</div>
+                                    <span class="urgency-badge {{ req.urgency_class }}">{{ req.urgency_label }}</span>
+                                </td>
                                 <td>
                                     <span class="status-pill status-{{ req.status }}">{{ req.status }}</span>
                                 </td>
                                 <td>{{ req.notes|default:"—" }}</td>
                                 <td>{{ req.created_at|date:"M d, Y" }}</td>
+                                <td>
+                                    {% if req.status == 'Pending' %}
+                                        <form method="POST" action="{% url 'cancel_blood_request' req.id %}" style="display:inline;" onsubmit="return confirm('Are you sure you want to cancel this pending blood request?');">
+                                            {% csrf_token %}
+                                            <button type="submit" class="btn-cancel" id="cancel-btn-{{ req.id }}">&#10005; Cancel</button>
+                                        </form>
+                                    {% elif req.status == 'Approved' %}
+                                        <button type="button" class="btn-slip" onclick="openPickupModal('{{ user.get_full_name|default:user.username }}', '{{ req.blood_group }}', '{{ req.units }}', '{{ req.needed_by_date }}', 'BBMS-REQ-{{ req.id }}')">
+                                            &#128196; Pickup Slip
+                                        </button>
+                                    {% else %}
+                                        <span style="color: var(--text-muted); font-size: 0.8rem;">—</span>
+                                    {% endif %}
+                                </td>
                             </tr>
                         {% endfor %}
                     </tbody>
@@ -258,5 +599,87 @@
             {% endif %}
         </main>
     </div>
+
+    <!-- Official Pickup Slip Modal -->
+    <div class="modal-overlay" id="pickupModal">
+        <div class="modal-card">
+            <div class="slip-header">
+                <h2>BLOOD DISPATCH AUTHORIZATION SLIP</h2>
+                <p>Blood Bank Management System &bull; Ward Distribution & Patient Pickup</p>
+            </div>
+            <div class="slip-grid">
+                <div><strong>Request Ref:</strong> <span id="slipRefId">BBMS-REQ-00</span></div>
+                <div><strong>Patient Name:</strong> <span id="slipPatient">Patient</span></div>
+                <div><strong>Blood Group:</strong> <span id="slipBloodGroup">A+</span></div>
+                <div><strong>Allocated Quantity:</strong> <span id="slipUnits">1</span> unit(s)</div>
+                <div><strong>Needed By:</strong> <span id="slipDate">2026-10-31</span></div>
+                <div><strong>Authorization:</strong> <span style="color: var(--success); font-weight:700;">Approved by Staff</span></div>
+            </div>
+            <div class="slip-instructions">
+                <strong>Instructions for Pickup:</strong> Present this authorization slip along with the patient or attendant ID at the Blood Bank dispensing counter for refrigerated blood pack release.
+            </div>
+            <div class="slip-actions">
+                <button type="button" class="btn-modal-close" onclick="closePickupModal()">Close</button>
+                <button type="button" class="btn-modal-print" onclick="window.print()">Print Slip</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const searchInput = document.getElementById('requestSearchInput');
+            const filterButtons = document.querySelectorAll('.filter-btn[data-filter]');
+            const rows = document.querySelectorAll('#requestsTableBody tr');
+
+            let currentFilter = 'all';
+            let searchQuery = '';
+
+            function applyFilters() {
+                rows.forEach(row => {
+                    const group = (row.getAttribute('data-group') || '').toLowerCase();
+                    const notes = (row.getAttribute('data-notes') || '').toLowerCase();
+                    const status = row.getAttribute('data-status') || '';
+
+                    const matchesSearch = !searchQuery || group.includes(searchQuery) || notes.includes(searchQuery);
+                    const matchesFilter = currentFilter === 'all' || status === currentFilter;
+
+                    if (matchesSearch && matchesFilter) {
+                        row.style.display = '';
+                    } else {
+                        row.style.display = 'none';
+                    }
+                });
+            }
+
+            if (searchInput) {
+                searchInput.addEventListener('input', function(e) {
+                    searchQuery = e.target.value.trim().toLowerCase();
+                    applyFilters();
+                });
+            }
+
+            filterButtons.forEach(btn => {
+                btn.addEventListener('click', function() {
+                    filterButtons.forEach(b => b.classList.remove('active'));
+                    this.classList.add('active');
+                    currentFilter = this.getAttribute('data-filter');
+                    applyFilters();
+                });
+            });
+        });
+
+        function openPickupModal(patient, group, units, neededDate, refId) {
+            document.getElementById('slipPatient').textContent = patient;
+            document.getElementById('slipBloodGroup').textContent = group;
+            document.getElementById('slipUnits').textContent = units;
+            document.getElementById('slipDate').textContent = neededDate;
+            document.getElementById('slipRefId').textContent = refId;
+            document.getElementById('pickupModal').style.display = 'flex';
+        }
+
+        function closePickupModal() {
+            document.getElementById('pickupModal').style.display = 'none';
+        }
+    </script>
 </body>
 </html>
