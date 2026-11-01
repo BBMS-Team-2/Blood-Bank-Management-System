@@ -43,7 +43,9 @@ class DonationForm(forms.ModelForm):
 
     def clean_donation_date(self):
         donation_date = self.cleaned_data.get('donation_date')
-        if donation_date and donation_date > date.today():
+        if donation_date is None:
+            raise forms.ValidationError('This field is required.')
+        if donation_date > date.today():
             raise forms.ValidationError(
                 'Donation date cannot be in the future.'
             )
@@ -283,7 +285,11 @@ class UserRegisterForm(UserCreationForm):
 class BloodInventoryUpdateForm(forms.Form):
     """Admin-only form for maintaining blood inventory stock by blood group."""
     blood_group = forms.ChoiceField(choices=Donation.BLOOD_GROUPS, label='Blood Group')
-    units = forms.IntegerField(min_value=0, label='Units in Stock')
+    units = forms.IntegerField(
+        min_value=0,
+        label='Units in Stock',
+        error_messages={'min_value': 'Inventory units cannot be negative.'},
+    )
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
