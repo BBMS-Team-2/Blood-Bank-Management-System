@@ -7,10 +7,9 @@ on:
   workflow_dispatch:
 
 jobs:
-  test:
-    name: Build & Test
+  quality-check:
+    name: Code Quality & Sanity Check
     runs-on: ubuntu-latest
-
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
@@ -26,18 +25,66 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
-      - name: Run Django System Checks
-        run: |
-          python manage.py check
+      - name: Django System Check
+        run: python manage.py check
 
-      - name: Verify Migrations
-        run: |
-          python manage.py makemigrations --check --dry-run
+      - name: Verify Migrations (No Unapplied Model Changes)
+        run: python manage.py makemigrations --check --dry-run
 
-      - name: Apply Migrations
+  test:
+    name: Automated Test Suite
+    needs: [quality-check]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: "pip"
+
+      - name: Install Dependencies
         run: |
-          python manage.py migrate
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Apply Database Migrations
+        run: python manage.py migrate
 
       - name: Run Automated Test Suite
+        run: python manage.py test --verbosity=2
+
+  coverage:
+    name: Code Coverage & Deliverables Gate
+    needs: [test]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: "pip"
+
+      - name: Install Dependencies
         run: |
-          python manage.py test --verbosity=2
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Run Code Coverage
+        run: |
+          coverage run --source=blood manage.py test
+          coverage report -m
+
+      - name: Verify Project Deliverables & Reports
+        run: |
+          test -f docs/2_SRS.pdf || { echo "::error::Missing docs/2_SRS.pdf"; exit 1; }
+          test -f docs/2_SAD.pdf || { echo "::error::Missing docs/2_SAD.pdf"; exit 1; }
+          test -f docs/2_TestPlan.pdf || { echo "::error::Missing docs/2_TestPlan.pdf"; exit 1; }
+          test -f docs/code-coverage-report.txt || { echo "::error::Missing docs/code-coverage-report.txt"; exit 1; }
+          test -f docs/branch-coverage-report.txt || { echo "::error::Missing docs/branch-coverage-report.txt"; exit 1; }
+          echo "All required documents and test reports are present in docs/."

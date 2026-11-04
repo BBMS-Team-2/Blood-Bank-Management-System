@@ -65,9 +65,15 @@ Blood-Bank-Management-System/
 ├── manage.py                     # Django management script
 ├── requirements.txt              # Project Python dependencies
 ├── README.md                     # Project documentation
-├── 2_SRS.pdf                     # Software Requirements Specification
-├── 2_SAD.pdf                     # Software Architecture Document
-├── 2_TestPlan.pdf                # Testing Plan & Traceability Matrix
+├── docs/                         # Project Requirements, Design & Quality Deliverables
+│   ├── 2_SRS.pdf                 # Software Requirements Specification (IEEE format)
+│   ├── 2_SAD.pdf                 # Software Architecture Document (IEEE format)
+│   ├── 2_TestPlan.pdf            # Testing Plan & Traceability Matrix (IEEE format)
+│   ├── code-coverage-report.txt  # Code coverage report (92% statement coverage)
+│   └── branch-coverage-report.txt # Branch coverage metrics (78% branch coverage)
+│
+├── .github/workflows/            # Continuous Integration & Delivery
+│   └── ci-cd.yml                 # Multi-stage CI CD pipeline (Quality -> Tests -> Coverage)
 │
 ├── config/                       # Core Django project configuration
 │   ├── settings.py               # Application settings, middleware, database config
@@ -84,7 +90,7 @@ Blood-Bank-Management-System/
 │   ├── admin.py                  # Django Admin customized interfaces & bulk actions
 │   ├── tests.py                  # Automated test suite (90+ unit and integration tests)
 │   │
-│   ├── migrations/               # Database migration history (0001 through 0008)
+│   ├── migrations/               # Database migration history (0001 through 0009)
 │   │
 │   └── templates/blood/          # HTML templates
 │       ├── navbar.html           # Universal role-aware navigation bar
