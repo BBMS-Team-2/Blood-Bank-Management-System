@@ -1,0 +1,7 @@
+BRANCH COVERAGE REPORT
+======================
+
+Total Branches: 238
+Covered Branches: 186
+Missing Branches: 52
+Branch Coverage: 78.15%
