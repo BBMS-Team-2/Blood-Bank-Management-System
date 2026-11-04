@@ -75,10 +75,25 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
-      - name: Run Code Coverage
+      - name: Run Tests with Branch Coverage
         run: |
-          coverage run --source=blood manage.py test
+          coverage run --source=blood --branch manage.py test
+
+      - name: Generate Coverage Reports
+        run: |
           coverage report -m
+          coverage json -o coverage.json
+          coverage xml -o coverage.xml
+          coverage html -d htmlcov
+
+      - name: Upload Coverage Reports Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: django-coverage-reports
+          path: |
+            coverage.json
+            coverage.xml
+            htmlcov/
 
       - name: Verify Project Deliverables & Reports
         run: |
