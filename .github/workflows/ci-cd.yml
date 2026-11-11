@@ -31,8 +31,8 @@ jobs:
       - name: Verify Migrations (No Unapplied Model Changes)
         run: python manage.py makemigrations --check --dry-run
 
-  test:
-    name: Automated Test Suite
+  unit-tests:
+    name: Unit Test Suite & Execution Report
     needs: [quality-check]
     runs-on: ubuntu-latest
     steps:
@@ -50,15 +50,48 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
-      - name: Apply Database Migrations
-        run: python manage.py migrate
+      - name: Run Unit Tests & Generate Report
+        run: |
+          python scripts/generate_test_reports.py unit
 
-      - name: Run Automated Test Suite
-        run: python manage.py test --verbosity=2
+      - name: Upload Unit Test Report
+        uses: actions/upload-artifact@v4
+        with:
+          name: unit-test-report
+          path: docs/unit-test-report.txt
 
-  coverage:
-    name: Code Coverage & Deliverables Gate
-    needs: [test]
+  system-tests:
+    name: System & Integration Test Suite
+    needs: [unit-tests]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: "pip"
+
+      - name: Install Dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Run System Tests & Generate Report
+        run: |
+          python scripts/generate_test_reports.py system
+
+      - name: Upload System Test Report
+        uses: actions/upload-artifact@v4
+        with:
+          name: system-test-report
+          path: docs/system-test-report.txt
+
+  coverage-and-reports:
+    name: Coverage Analysis & Deliverables Gate
+    needs: [system-tests]
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Code
@@ -86,20 +119,26 @@ jobs:
           coverage xml -o coverage.xml
           coverage html -d htmlcov
 
-      - name: Upload Coverage Reports Artifact
+      - name: Upload Comprehensive Reports Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: django-coverage-reports
+          name: django-test-and-coverage-reports
           path: |
+            docs/unit-test-report.txt
+            docs/system-test-report.txt
+            docs/code-coverage-report.txt
+            docs/branch-coverage-report.txt
             coverage.json
             coverage.xml
             htmlcov/
 
-      - name: Verify Project Deliverables & Reports
+      - name: Verify Evaluation Deliverables in docs/
         run: |
           test -f docs/2_SRS.pdf || { echo "::error::Missing docs/2_SRS.pdf"; exit 1; }
           test -f docs/2_SAD.pdf || { echo "::error::Missing docs/2_SAD.pdf"; exit 1; }
           test -f docs/2_TestPlan.pdf || { echo "::error::Missing docs/2_TestPlan.pdf"; exit 1; }
+          test -f docs/unit-test-report.txt || { echo "::error::Missing docs/unit-test-report.txt"; exit 1; }
+          test -f docs/system-test-report.txt || { echo "::error::Missing docs/system-test-report.txt"; exit 1; }
           test -f docs/code-coverage-report.txt || { echo "::error::Missing docs/code-coverage-report.txt"; exit 1; }
           test -f docs/branch-coverage-report.txt || { echo "::error::Missing docs/branch-coverage-report.txt"; exit 1; }
-          echo "All required documents and test reports are present in docs/."
+          echo "All required deliverables and IEEE 829 test reports verified successfully."

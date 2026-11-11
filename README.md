@@ -69,11 +69,13 @@ Blood-Bank-Management-System/
 │   ├── 2_SRS.pdf                 # Software Requirements Specification (IEEE format)
 │   ├── 2_SAD.pdf                 # Software Architecture Document (IEEE format)
 │   ├── 2_TestPlan.pdf            # Testing Plan & Traceability Matrix (IEEE format)
+│   ├── unit-test-report.txt      # Unit test execution report (48 tests, 100% pass)
+│   ├── system-test-report.txt    # System test execution report (43 tests, 100% pass)
 │   ├── code-coverage-report.txt  # Code coverage report (92% statement coverage)
 │   └── branch-coverage-report.txt # Branch coverage metrics (78% branch coverage)
 │
 ├── .github/workflows/            # Continuous Integration & Delivery
-│   └── ci-cd.yml                 # Multi-stage CI CD pipeline (Quality -> Tests -> Coverage)
+│   └── ci-cd.yml                 # 4-Stage CI CD pipeline (Quality -> Unit -> System -> Coverage)
 │
 ├── config/                       # Core Django project configuration
 │   ├── settings.py               # Application settings, middleware, database config

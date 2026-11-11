@@ -1,0 +1,26 @@
+BLOOD BANK MANAGEMENT SYSTEM (BBMS)
+UNIT TEST EXECUTION REPORT
+Standard: IEEE 829 Test Reporting
+Environment: Django 5.2 / Python 3.12 / SQLite 3
+================================================================================
+Total Test Classes : 9
+Total Test Cases   : 48
+Passed             : 48
+Failed             : 0
+Errors             : 0
+Success Rate       : 100.0%
+Execution Duration : 43.49 seconds
+================================================================================
+Requirement          | Test Suite                       | Tests | Status | Time
+--------------------------------------------------------------------------------
+BB-F-005             | DonationSubmissionTests          | 3     | PASSED | 0.40s
+BB-F-006 / BB-F-013  | DonationReviewServiceTests       | 7     | PASSED | 0.06s
+BB-F-009             | BloodRequestSubmissionTests      | 4     | PASSED | 0.08s
+BB-F-010             | BloodRequestReviewServiceTests   | 6     | PASSED | 0.07s
+BB-F-008             | PatientProfileManagementTests    | 7     | PASSED | 7.09s
+BB-F-004             | DonorProfileManagementTests      | 5     | PASSED | 5.06s
+BB-F-018             | BloodExpiryTrackingTests         | 5     | PASSED | 10.20s
+BB-F-012 / BB-NF-006 | BloodInventoryUpdateTests        | 3     | PASSED | 3.14s
+BB-NF-003 / BB-SR-001 | SecurityAndAuthenticationTests   | 8     | PASSED | 17.39s
+================================================================================
+VERDICT: ALL TESTS PASSED SUCCESSFULLY (0 FAILURES, 0 ERRORS)
