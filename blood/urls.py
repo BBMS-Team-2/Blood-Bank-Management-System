@@ -23,6 +23,11 @@ urlpatterns = [
         name='review_donation'
     ),
     path(
+        '',
+        views.view_blood_availability,
+        name='home'
+    ),
+    path(
         'inventory/availability/',
         views.view_blood_availability,
         name='blood_availability'
